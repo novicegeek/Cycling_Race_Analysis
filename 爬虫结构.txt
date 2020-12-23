@@ -1,0 +1,35 @@
+需要获取的参数：
+# Competition表示赛事名称，Race表示赛段名
+# 变量名注意大小写
+
+disciplineId: 10（对应所有公路车比赛）
+
+SeasonId: 
+    编码赛事年份
+    URL：https://dataride.uci.ch/iframe/GetRestrictedResultsDisciplineSeasons/?disciplineId=10
+    表单参数：disciplineId（已知）
+    方法：GET
+    返回：year-SeasonId的对应列表
+    
+CompetitionId: 
+    编码赛事名称
+    URL：https://dataride.uci.ch/iframe/Competitions/
+    表单参数：SeasonId；take，pageSize（应该都是表示一次性获取的比赛数量的，猜测前者是获取量，后者是html渲染的数量）
+    方法：POST
+    返回：赛事名-CompetitionId对应列表；赛事总数“total”--特别注意：同一项比赛在不同的年份ID也是不一样的
+    
+RaceId：
+    编码赛段
+    URL：https://dataride.uci.ch/iframe/Races/
+    表单参数：CompetitionId；take，pageSize
+    方法：POST
+    返回：赛段-RaceId对应列表；赛段总数“total”
+    
+EventId：
+    编码结果类型（比如GC或者SC）
+    URL：https://dataride.uci.ch/iframe/Events/
+    表单参数：raceId
+    方法：POST
+    返回：EventId-结果类型名字对应列表
+
+之后就可以接入下载模块了

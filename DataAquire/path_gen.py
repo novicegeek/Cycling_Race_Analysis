@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Generate complete file path from given information."""
 
 
@@ -12,7 +13,7 @@ class PathGenerator(object):
         self.dir_base = dir_base
 
     def _load_code_json(self):
-        with open("competition_codes.txt", 'r', encoding='utf-8') as fr:
+        with open("competition_codes.json", 'r', encoding='utf-8') as fr:
             self.competition_codes = json.load(fr)
         fr.close()
         # with open("race_codes.json", 'r') as fr:

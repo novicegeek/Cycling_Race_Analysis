@@ -4,8 +4,8 @@
 
 import os
 import json
-import main
-ENCODING = main.ENCODING
+import global_vars
+ENCODING = global_vars.get_value('ENCODING')
 
 
 def auto_read_log(log_path, mode='r', encoding=ENCODING):

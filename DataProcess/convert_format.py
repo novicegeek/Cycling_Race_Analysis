@@ -8,8 +8,9 @@ import csv
 import xlrd
 import log
 import gen_var
-import main
-ENCODING = main.ENCODING
+import global_vars
+import re
+ENCODING = global_vars.get_value('ENCODING')
 
 
 def xlsx2csv(file, path_result=None):

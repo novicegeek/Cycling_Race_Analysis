@@ -9,8 +9,8 @@ import pandas as pd
 import re
 import numpy as np
 import log
-import main
-ENCODING = main.ENCODING
+import global_vars
+ENCODING = global_vars.get_value('ENCODING')
 
 
 def get_file_list(file_dir, extension=None):

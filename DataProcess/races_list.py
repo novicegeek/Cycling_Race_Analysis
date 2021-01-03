@@ -20,15 +20,18 @@ Information (fields) included:
 """
 
 
-import os
 import json
+import os
+import numpy as np
 import pandas as pd
 import pandas.core.series
-import numpy as np
 import global_vars
+import basics
+
+
 ENCODING = global_vars.get_value('ENCODING')
 ROOT = global_vars.get_value('ROOT')
-with open(os.path.join(ROOT, r"Codes\DataAquire\competition_codes.json"), 'r', encoding='utf-8') as fr:
+with open(os.path.join(ROOT, r"Codes\DataAcquire\competition_codes.json"), 'r', encoding='utf-8') as fr:
     RACE_CODES = json.load(fr)
     fr.close()
 MULTI_STAGES = ['Tour de France', "Giro d'Italia", 'Vuelta a España']
@@ -62,16 +65,16 @@ class RacesList(object):
                 is_multi_stage = 1 if cur_race in MULTI_STAGES else 0
                 race_meta_df = pd.DataFrame()
                 for year, cur_sheet in workbook.items():  # year is the sheet name; cur_sheet is a dataframe
-                    print("----------Examining {} {}----------".format(cur_race, year))
+                    print("---------- Examining {} {} ----------".format(cur_race, year))
                     has_prologue = 1 if cur_sheet['NUM'][0] == 'P' else 0
                     actual_stage_count = 0
                     for cur_row in cur_sheet.iterrows():
                         if not pd.isna(cur_row[1]['NUM']):  # This is stage information
-                            print("    ------Examining stage {}------".format(cur_row[1]['NUM']))
+                            print("    ------ Examining stage {} ------".format(cur_row[1]['NUM']))
                             num = cur_row[1]['NUM']
                             stage_meta_df = pd.DataFrame({
                                 'ID': self._create_id(cur_race, year, cur_row[1]),
-                                'Nominal Stage Number': int(num) if self._is_int(num) else num,
+                                'Nominal Stage Number': int(float(num)) if self._is_int(num) else num,
                                 'Actual Stage Number': self._get_actual_stage_number(has_prologue, cur_row[1]),
                                 'Race': cur_race,
                                 'Year': year,
@@ -114,7 +117,7 @@ class RacesList(object):
                         }))
                         if len(cur_list) == 0 or race_meta_df['ID'][0] not in cur_list['ID']:
                             cur_list = pd.concat([cur_list, race_meta_df], ignore_index=True, sort=False)
-                        cur_list.to_csv(self.races_list_path, mode='w', index=False, encoding=ENCODING)
+                        basics.write_csv_bom(cur_list, self.races_list_path)
         return
 
     @staticmethod
@@ -137,9 +140,9 @@ class RacesList(object):
             try:
                 number = str(int(row_data['NUM']))  # This is a normal stage if no error
                 code = 'S' + '0' * (align - len(number)) + number
-            except ValueError:
-                code = 'S0P'
-        else:
+            except ValueError:  # This is a Prologue stage
+                code = 'P01'
+        else:  # This is the overall race, not a single stage
             code = 'R01'
         return race_code + str(year) + code
 
@@ -187,6 +190,6 @@ class RacesList(object):
     def _is_int(num):
         """Determine if the input is an integer or not."""
         try:
-            return abs(num - int(num)) < TOLERANCE
+            return abs(float(num) - int(float(num))) < TOLERANCE
         except ValueError or TypeError:
             return False

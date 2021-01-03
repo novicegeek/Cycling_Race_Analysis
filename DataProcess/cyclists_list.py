@@ -12,9 +12,12 @@ Create from data downloaded yet list of ALL involved cyclists and related inform
 
 
 import json
-import pandas as pd
 import os
+import pandas as pd
 import global_vars
+import basics
+
+
 ENCODING = global_vars.get_value('ENCODING')
 ROOT = global_vars.get_value('ROOT')
 NULL_HEADERS = ('Full Name', 'First Name', 'Last Name', 'Country', 'ID')
@@ -68,7 +71,7 @@ class CyclistsList(object):
         for item in os.listdir(source_root):
             if item in races:  # To avoid the log file; the target item is the race name
                 for year in os.listdir(os.path.join(source_root, item)):
-                    print("----------Examining {} {}----------".format(item, year))
+                    print("---------- Examining {} {} ----------".format(item, year))
                     cur_path = os.path.join(source_root, item, year)  # In the form of ...\\race_name\\season_year
                     for file in os.listdir(cur_path):
                         if 'FC_GC' in file:
@@ -81,7 +84,7 @@ class CyclistsList(object):
                                 )
                             break
                     # Rewrite the cyclists list and record count document after processing every season for a race.
-                    cur_list.to_csv(self.cyclists_list_path, mode='w', index=False, encoding=ENCODING)
+                    basics.write_csv_bom(cur_list, self.cyclists_list_path)
                     with open(self.cyclists_count_path, 'w', encoding=ENCODING) as fw:
                         json.dump(cur_count, fw, ensure_ascii=False)
                         fw.close()

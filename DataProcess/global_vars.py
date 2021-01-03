@@ -17,4 +17,4 @@ def get_value(key):
 
 
 set_value('ENCODING', 'utf-8')
-set_value('ROOT', r"D:\PKU\LuLab\Masters'Thesis\Data")
+set_value('ROOT', r"D:\PKU\LuLab\Master'sThesis\Data")

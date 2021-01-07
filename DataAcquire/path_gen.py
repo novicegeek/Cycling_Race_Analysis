@@ -4,6 +4,8 @@
 
 import json
 import re
+import global_vars
+ENCODING = global_vars.get_value('ENCODING')
 
 
 class PathGenerator(object):
@@ -13,7 +15,7 @@ class PathGenerator(object):
         self.dir_base = dir_base
 
     def _load_code_json(self):
-        with open("competition_codes.json", 'r', encoding='utf-8') as fr:
+        with open("competition_codes.json", 'r', encoding=ENCODING) as fr:
             self.competition_codes = json.load(fr)
         fr.close()
         # with open("race_codes.json", 'r') as fr:

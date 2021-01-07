@@ -1,1 +1,14 @@
-{"Tour de France": "TDF", "Giro d'Italia": "GDI", "La Vuelta ciclista a España": "VAE", "Vuelta a España": "VAE", "Milano-Sanremo": "MSA", "Ronde van Vlaanderen / Tour des Flandres": "RVV", "Ronde van Vlaanderen - Tour des Flandres": "RVV", "Ronde van Vlaanderen-Tour des Flandres": "RVV", "Ronde van Vlaanderen": "RVV", "Tour des Flandres": "RVV", "De Ronde van Vlaanderen": "RVV", "Paris-Roubaix": "PRO", "Liège-Bastogne-Liège": "LBL", "Il Lombardia": "ILO", "Championnats du Monde Route UCI / UCI Road World Championships": "RWC", "Championnats du Monde Route UCI": "RWC", "UCI Road World Championships": "RWC"}
+{
+  "Tour de France": "TDF",
+  "Giro d'Italia": "GDI",
+  "La Vuelta ciclista a España": "VAE", "Vuelta a España": "VAE",
+  "Milano-Sanremo": "MSA",
+  "Ronde van Vlaanderen / Tour des Flandres": "RVV", "Ronde van Vlaanderen - Tour des Flandres": "RVV", "Ronde van Vlaanderen-Tour des Flandres": "RVV", "Ronde van Vlaanderen": "RVV", "Tour des Flandres": "RVV", "De Ronde van Vlaanderen": "RVV",
+  "Paris-Roubaix": "PRO",
+  "Liège-Bastogne-Liège": "LBL",
+  "Il Lombardia": "ILO",
+  "Championnats du Monde Route UCI / UCI Road World Championships": "RWC", "Championnats du Monde Route UCI": "RWC", "UCI Road World Championships": "RWC",
+  "Paris-Nice": "PNI", "Paris - Nice": "PNI",
+  "Tour de Suisse": "TDS",
+  "Critérium du Dauphiné": "CDD", "Critérium du Dauphiné Libéré": "CDD"
+}

@@ -1,0 +1,601 @@
+"C:\Users\David Lee\AppData\Local\Programs\Python\Python37\python.exe" "C:\Program Files\JetBrains\PyCharm Community Edition 2019.1.3\plugins\python-ce\helpers\pydev\pydevconsole.py" --mode=client --port=2826
+import sys; print('Python %s on %s' % (sys.version, sys.platform))
+sys.path.extend(['D:\\PKU\\LuLab\\Master\'sThesis\\Data\\Codes\\DataAcquire', 'D:/PKU/LuLab/Master\'sThesis/Data/Codes/DataAcquire'])
+Python 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.8.0 -- An enhanced Interactive Python. Type '?' for help.
+PyDev console: using IPython 7.8.0
+Python 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)] on win32
+runfile('D:/PKU/LuLab/Master\'sThesis/Data/Codes/DataAcquire/test.py', wdir='D:/PKU/LuLab/Master\'sThesis/Data/Codes/DataAcquire')
+---------- Getting parcours information for Giro d'Italia 2012, Stage P ----------
+Discrepancy on prologue occurs for Giro d'Italia 2012
+---------- Getting parcours information for Giro d'Italia 2013, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2013, Stage 21 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2014, Stage 21 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2015, Stage 21 ----------
+---------- Getting parcours information for Giro d'Italia 2016, Stage P ----------
+Discrepancy on prologue occurs for Giro d'Italia 2016
+---------- Getting parcours information for Giro d'Italia 2017, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2017, Stage 21 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2018, Stage 21 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 1 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 2 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 3 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 4 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 5 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 6 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 7 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 8 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 9 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 10 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 11 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 12 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 13 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 14 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 15 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 16 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 17 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 18 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 19 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 20 ----------
+---------- Getting parcours information for Giro d'Italia 2019, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2009, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2010, Stage P ----------
+---------- Getting parcours information for Tour de France 2010, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2010, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2011, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2012, Stage P ----------
+---------- Getting parcours information for Tour de France 2012, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2012, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2013, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2014, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2015, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2016, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2017, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2018, Stage 21 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 1 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 2 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 3 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 4 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 5 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 6 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 7 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 8 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 9 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 10 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 11 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 12 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 13 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 14 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 15 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 16 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 17 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 18 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 19 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 20 ----------
+---------- Getting parcours information for Tour de France 2019, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2009, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2010, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2011, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2012, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2013, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2014, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2015, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2016, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2017, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2018, Stage 21 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 1 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 2 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 3 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 4 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 5 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 6 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 7 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 8 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 9 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 10 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 11 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 12 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 13 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 14 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 15 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 16 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 17 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 18 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 19 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 20 ----------
+---------- Getting parcours information for Vuelta a España 2019, Stage 21 ----------

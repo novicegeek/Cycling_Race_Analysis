@@ -1,31 +1,34 @@
+# -*- coding: utf-8 -*-
 """The core downloading module."""
 
 
 # %%
-# import urllib3
-# import urllib.request as request
-# import random
-import urllib.parse as parse
+import copy
+import json
+import os
+import re
 import requests
+import time
+import urllib.parse as parse
+import brotli
 import bs4
 from bs4 import BeautifulSoup as BS
-import re
 import chardet
-import brotli
-import json
-import copy
-import time
-import os
+import pandas as pd
+import global_vars
 import path_gen
+
+
 MAX = 9999
-ROOT = r"D:/PKU/LuLab/Masters'Thesis/Data"
+ENCODING = global_vars.get_value('ENCODING')
+ROOT = global_vars.get_value('ROOT')
 
 
 # %%
 class UCIDownloader(object):
     """Perform the downloading task."""
 
-    def __init__(self, discipline_id=10, category_id=22, download_dir=ROOT+r"/Raw"):
+    def __init__(self, discipline_id=10, category_id=22, download_dir=ROOT+r"\Raw"):
         """Configure default request settings.
 
         :param discipline_id: By default 10 (Road Cycling).
@@ -197,7 +200,7 @@ class UCIDownloader(object):
             try:
                 if response.headers['content-encoding'] == 'br' \
                         and chardet.detect(response.content) != 'ascii':
-                    response_str = str(brotli.decompress(response.content), 'utf-8')
+                    response_str = str(brotli.decompress(response.content), ENCODING)
                 else:
                     response_str = ''
                 response_json = json.loads(response_str)
@@ -659,3 +662,128 @@ class UCIDownloader(object):
         else:
             response = session.get(url=url_base, params=query_str, headers=headers, proxies=self.proxies)
         return response, session
+
+
+class ProCyclingStatsDownloader(object):
+    """Download race- and cyclist-related information from https://www.procyclingstats.com"""
+
+    def __init__(self):
+        self.url_root = "https://www.procyclingstats.com"
+        self.races_list_file_path = os.path.join(ROOT, r"MetaData\races_list.csv")
+        self.races_parse_file_path = os.path.join(ROOT, r"Codes\DataAcquire\races_parse.json")
+        self.races_parcours_file_path = os.path.join(ROOT, r"MetaData\races_parcours.json")
+        self.accept = "text/html,application/xhtml+xml,application/xml;" \
+                      "q=0.9,image/avif,image/webp,image/apng,*/*;" \
+                      "q=0.8,application/signed-exchange;" \
+                      "v=b3;" \
+                      "q=0.9"
+        self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " \
+                          "AppleWebKit/537.36 (KHTML, like Gecko) " \
+                          "Chrome/87.0.4280.88 " \
+                          "Safari/537.36"
+        self.headers_stage = {
+            'Accept': self.accept,
+            'Accept-Encoding': "gzip, deflate, br",
+            'Accept-Language': "zh-CN,zh;q=0.9,en;q=0.8,fr;q=0.7",
+            'Cache-Control': "max-age=0",
+            'Referer': "https://www.procyclingstats.com/races.php",
+            'Sec-Ch-Ua': '"Google Chrome";v="87", " Not;A Brand";v="99", "Chromium";v="87"',
+            'Sec-Ch-Ua-Mobile': "?0",
+            'Sec-Fetch-Dest': "document",
+            'Sec-Fetch-Site': "same-origin",
+            'Sec-Fetch-User': "?1",
+            'Upgrade-Insecure-Requests': "1",
+            'User-Agent': self.user_agent
+        }
+        self.headers_gc = copy.deepcopy(self.headers_stage)
+        self.headers_gc.__delitem__('Cache-Control')
+        self.headers_gc.__delitem__('Referer')
+
+    def download_parcours(self, races='all', seasons=tuple(range(2009, 2020)), stages='all'):
+        """Download parcours scores from the website, and write them into an individual file.
+
+        :param races: The list/tuple of FULL NAMES of races. By default 'all'.
+        :param seasons: Should be a list of str/int. By default tuple of 2009-2019.
+        :param stages: What stages to download. Should be a single str/int or a list of str/int.
+            Prologue should be as 'P' or 'p'. By default 'all'.
+        """
+        with open(self.races_parse_file_path, 'r', encoding=ENCODING) as fr:
+            races_parse_json = json.load(fr)
+            fr.close()
+        with open(self.races_list_file_path, 'r', encoding=ENCODING) as fr:
+            races_list = pd.read_csv(fr)
+            fr.close()
+        try:
+            with open(self.races_parcours_file_path, 'r', encoding=ENCODING) as fr:
+                races_parcours = json.load(fr)
+                fr.close()
+        except FileNotFoundError:
+            races_parcours = {}
+
+        # Transform all 3 variables to be iterable
+        if races == 'all':
+            pass
+        elif type(races) == str:
+            races = [races]
+        if type(seasons) in [int, str]:
+            seasons = [str(seasons)]
+        else:
+            seasons = [str(season) for season in seasons]
+        if stages == 'all':
+            pass
+        elif type(stages) in [int, str]:
+            stages = [str(stages)]
+        else:
+            stages = [str(stage) for stage in stages]
+
+        try:
+            prologue_error_record = [None, None]
+            last_write = 0
+            for row in races_list.iterrows():
+                if races_parcours.get(row[1]['ID']):  # This stage has been added to the .json file
+                    continue
+                cur_race = row[1]['Race'],  # 奇怪的bug，赋值之后cur_race会变成series类
+                cur_race = cur_race[0]
+                cur_year = str(row[1]['Year'])
+                if [cur_race, cur_year] == prologue_error_record:  # 跳过prologue有问题的年份
+                    continue
+                cur_stage = row[1]['Nominal Stage Number']
+                if pd.isna(cur_stage):  # This is an overall race datum
+                    continue
+                cur_stage = str(int(float(cur_stage))) if cur_stage != 'P' else cur_stage
+
+                if ((races == 'all' or cur_race in races)
+                        and cur_year in seasons
+                        and (stages == 'all' or cur_stage in stages)):
+                    print("---------- Getting parcours information for {} {}, Stage {} ----------"
+                          .format(cur_race, cur_year, cur_stage))
+                    cur_race_parse = races_parse_json[cur_race]
+                    cur_stage_parse = 'stage-' + cur_stage if cur_stage != 'P' else 'prologue'
+                    cur_url = '/'.join([self.url_root, 'race',
+                                        cur_race_parse, cur_year, cur_stage_parse,
+                                        'result/result'])
+
+                    response = requests.request(method='GET', url=cur_url, headers=self.headers_stage)
+                    response_bs = BS(response.text, 'html.parser')
+                    info_tag = str(response_bs.find('div', attrs={'class': "res-right"}))
+
+                    pattern_profile_score = re.compile('profile-score">(.*?)</a>', re.S)
+                    try:
+                        cur_parcours = pattern_profile_score.findall(info_tag)[0]
+                    except IndexError:  # Discrepancy on the mark of a prologue, so the returned page is empty
+                        prologue_error_record = [cur_race, cur_year]
+                        print("Discrepancy on prologue occurs for {} {}".format(cur_race, cur_year))
+                    else:
+                        races_parcours[row[1]['ID']] = cur_parcours
+                        last_write += 1
+                    if not last_write % 10:  # 每写入10个新条目覆盖一次.json文件
+                        with open(self.races_parcours_file_path, 'w', encoding=ENCODING) as fw:
+                            json.dump(races_parcours, fw)
+                            fw.close()
+        except Exception:
+            raise
+        finally:
+            with open(self.races_parcours_file_path, 'w', encoding=ENCODING) as fw:
+                json.dump(races_parcours, fw)
+                fw.close()
+        return

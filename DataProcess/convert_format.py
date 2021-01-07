@@ -32,8 +32,11 @@ class FormatConverter(object):
         """
         source_dir = self.root + r'\Raw'
         convert_dir = self.root + r'\Converted_Raw'
+
         path_convert_log = os.path.join(source_dir, 'convert_log.txt')
         convert_log = log.auto_read_log(path_convert_log)
+        path_tidy_log = os.path.join(convert_dir, 'tidy_log.txt')
+        tidy_log = log.auto_read_log(path_tidy_log)
 
         if not race_range:
             race_range = []
@@ -59,8 +62,10 @@ class FormatConverter(object):
                     result_path_xlsx = file.replace('Raw', 'Converted_Raw')
                     self.xlsx2csv(file, converted_file_path=result_path_xlsx)
                     convert_log[file_name_convert] = 'Y'
+                    tidy_log[file_name_convert] = 'N'
         finally:
             log.auto_write_log(convert_log, path_convert_log)
+            log.auto_write_log(tidy_log, path_tidy_log)
         return convert_dir
 
     @staticmethod

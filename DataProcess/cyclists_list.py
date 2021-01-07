@@ -92,7 +92,7 @@ class CyclistsList(object):
         return
 
     def add_data_to_list(self, cur_list, cur_count, cur_data, year, source):
-        """Add or fill up cyclist' data to the final list.
+        """Add or fill up cyclists' data to the final list.
 
         :param cur_list: The latest version of cyclists' list (as dataframe) before this call.
         :param cur_count: The counts record BEFORE adding the current cyclist.
@@ -147,8 +147,10 @@ class CyclistsList(object):
                     cur_list.loc.__setitem__((index, 'Source'), source)
                 elif cur_list[team_season_header][index] != team:  # There is a discrepancy between two team records
                     print(
-                        "    A discrepancy occurs between team records for {} from {}, at season {}. Please check."
-                        .format(full_name, country, year)
+                        "  Warning: A discrepancy occurs between team records for {} from {}, at season {}."
+                        "    Old Assignment: {}"
+                        "    New Assignment: {}"
+                        .format(full_name, country, year, cur_list[team_season_header][index], team)
                         )
                     continue
                 else:  # The team record already exists for this season

@@ -1,0 +1,14 @@
+f1_f2_f3_f4(_f5).format
+
+f1: Date of the race
+f2: Race code
+f3: Stage code (FC: final classification; Sx: Stage No. x)
+f4: Result type (
+	GC: General classification; 
+	MC/OMC: Mountain classification/Overall mountain classification; 
+	PC/OPC: Point classification/Overall point classification; 
+	SC: Stage classfication
+	)
+f5(optional): Race type (ITT: Individual time trial; TTT: Team time trial; Null: Road race)
+
+# For multi-stage races (e.g., TDF), the MC/PC of FINAL classification refers to OMC/OPC of the whole race. OMC/OPC tokens are used only for individual stages in multi-stage races. 

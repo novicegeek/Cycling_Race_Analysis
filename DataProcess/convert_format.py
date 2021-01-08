@@ -35,8 +35,6 @@ class FormatConverter(object):
 
         path_convert_log = os.path.join(source_dir, 'convert_log.txt')
         convert_log = log.auto_read_log(path_convert_log)
-        path_tidy_log = os.path.join(convert_dir, 'tidy_log.txt')
-        tidy_log = log.auto_read_log(path_tidy_log)
 
         if not race_range:
             race_range = []
@@ -54,18 +52,18 @@ class FormatConverter(object):
                     year_dir = os.path.join(race_dir, year)
                     file_list += basics.get_file_list(year_dir, extension='.xlsx')
 
-        try:
-            for file in file_list:
-                file_name_convert = os.path.split(file)[1]
-                if file_name_convert not in convert_log.keys() \
-                        or convert_log[file_name_convert] == 'N':
-                    result_path_xlsx = file.replace('Raw', 'Converted_Raw')
-                    self.xlsx2csv(file, converted_file_path=result_path_xlsx)
-                    convert_log[file_name_convert] = 'Y'
-                    tidy_log[file_name_convert] = 'N'
-        finally:
-            log.auto_write_log(convert_log, path_convert_log)
-            log.auto_write_log(tidy_log, path_tidy_log)
+        last_write = 0
+        for file in file_list:
+            file_name_convert = os.path.split(file)[1]
+            if file_name_convert not in convert_log.keys():
+                result_path_xlsx = file.replace('Raw', 'Converted_Raw')
+                self.xlsx2csv(file, converted_file_path=result_path_xlsx)
+                convert_log[file_name_convert] = 'Y'
+                last_write += 1
+            if not last_write % 20:  # 每转换20个文件写入一次日志
+                log.auto_write_log(convert_log, path_convert_log)
+
+        log.auto_write_log(convert_log, path_convert_log)
         return convert_dir
 
     @staticmethod

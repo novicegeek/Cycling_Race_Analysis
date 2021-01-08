@@ -19,8 +19,8 @@ import basics
 
 
 ENCODING = global_vars.get_value('ENCODING')
-ROOT = global_vars.get_value('ROOT')
 NULL_HEADERS = ('Full Name', 'First Name', 'Last Name', 'Country', 'ID')
+ROOT = global_vars.get_value('ROOT')
 
 
 class CyclistsList(object):
@@ -55,8 +55,17 @@ class CyclistsList(object):
             with open(self.cyclists_list_path, 'r', encoding=ENCODING) as fr:
                 cur_list = pd.read_csv(fr)
                 fr.close()
+            cur_list_cyclists_dict = dict(
+                [
+                    (
+                        '@'.join(list(row[1][['Full Name', 'Country']])), row[0]
+                    )
+                    for row in cur_list.iterrows()
+                ]
+            )  # Hash cur_list to accelerate matching. Dict structure: {Full Name@Country: row_index}.
         except FileNotFoundError:
             cur_list = pd.DataFrame()
+            cur_list_cyclists_dict = {}
         
         # Open the document recording the number of cyclists from each country.
         try:
@@ -79,8 +88,9 @@ class CyclistsList(object):
                                       encoding=ENCODING) as fr:
                                 cur_data = pd.read_csv(fr)
                                 fr.close()
-                            cur_list, cur_count = self.add_data_to_list(
-                                cur_list, cur_count, cur_data, year, ', '.join([item, str(year)])
+                            cur_list, cur_list_cyclists_dict, cur_count = self.add_data_to_list(
+                                cur_list, cur_list_cyclists_dict, cur_count,
+                                cur_data, year, ', '.join([item, str(year)])
                                 )
                             break
                     # Rewrite the cyclists list and record count document after processing every season for a race.
@@ -91,10 +101,12 @@ class CyclistsList(object):
                     
         return
 
-    def add_data_to_list(self, cur_list, cur_count, cur_data, year, source):
+    def add_data_to_list(self, cur_list, cur_cyclists_dict, cur_count, cur_data, year, source):
         """Add or fill up cyclists' data to the final list.
 
         :param cur_list: The latest version of cyclists' list (as dataframe) before this call.
+        :param cur_cyclists_dict: The dictionary generated from cur_list, storing the full names,
+            countries and row indexes for fast matching. Structure: {Full Name@Country: row_index}.
         :param cur_count: The counts record BEFORE adding the current cyclist.
         :param cur_data: The data (dataframe) to be scanned in this call.
         :param year: The season year being examined.
@@ -112,20 +124,16 @@ class CyclistsList(object):
                 continue
             team = row[1]['Team']
             team_season_header = '_'.join(['Team', str(year)])
-            print("  Examining {} from {}".format(full_name, country))
+            # print("  Examining {} from {}".format(full_name, country))
             # Match the cyclist with full name and country.
             # If and only if both match, we take it as a valid match.
             # PROBLEM: There could be two cyclists of the same name and from the same country,
             # though the probability is extremely low.
-            try:
-                match = cur_list[
-                    (cur_list['Full Name'] == full_name)
-                    &
-                    (cur_list['Country'] == country)
-                    ]
-            except KeyError:  # An empty dataframe
-                match = pd.DataFrame()
-            if len(match) == 0:  # The cyclist is not in the list
+            key = '@'.join([full_name, country])
+            index = cur_cyclists_dict.get(key)
+
+            if index is None:  # No match (The cyclist is not in the list)
+                index = len(cur_cyclists_dict)
                 cur_count, new_id = self._create_id(cur_count, country)
                 new_data = pd.DataFrame({
                     'Full Name': full_name,
@@ -138,24 +146,29 @@ class CyclistsList(object):
                     },  # The fields to be added for a first-time included cyclist.
                     index=[0])
                 cur_list = pd.concat([cur_list, new_data], ignore_index=True, sort=False)
+                cur_cyclists_dict.update([(key, index)])
+                # print("    {} from {} newly appended, with team for {} newly appended"
+                #       .format(full_name, country, year))
             else:  # The cyclist is already in the list
-                index = list(match.index)[0]
                 if (team_season_header not in cur_list.columns  # Cyclist checked for the season for the first time
                         or
                         pd.isna(cur_list[team_season_header][index])):
                     cur_list.loc.__setitem__((index, team_season_header), team)
                     cur_list.loc.__setitem__((index, 'Source'), source)
+                    # print("    {} from {} already exists, but team assignment for {} newly appended"
+                    #       .format(full_name, country, year))
                 elif cur_list[team_season_header][index] != team:  # There is a discrepancy between two team records
                     print(
-                        "  Warning: A discrepancy occurs between team records for {} from {}, at season {}."
-                        "    Old Assignment: {}"
-                        "    New Assignment: {}"
+                        "    Warning: A discrepancy occurs between team records for {} from {}, at season {}.\n"
+                        "      Old Assignment: {}"
+                        "      New Assignment: {}"
                         .format(full_name, country, year, cur_list[team_season_header][index], team)
                         )
                     continue
                 else:  # The team record already exists for this season
+                    # print("    {} from {} and team assignment for {} already exists".format(full_name, country, year))
                     pass
-        return cur_list, cur_count
+        return cur_list, cur_cyclists_dict, cur_count
     
     @staticmethod
     def _create_id(cur_count, country, align=4):

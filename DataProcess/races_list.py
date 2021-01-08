@@ -30,11 +30,11 @@ import basics
 
 
 ENCODING = global_vars.get_value('ENCODING')
+MULTI_STAGES = global_vars.get_value('MULTI-STAGES')
 ROOT = global_vars.get_value('ROOT')
 with open(os.path.join(ROOT, r"Codes\DataAcquire\competition_codes.json"), 'r', encoding='utf-8') as fr:
     RACE_CODES = json.load(fr)
     fr.close()
-MULTI_STAGES = ['Tour de France', "Giro d'Italia", 'Vuelta a España']
 TOLERANCE = 1e-8
 
 
@@ -54,11 +54,14 @@ class RacesList(object):
             with open(self.races_list_path, 'r', encoding=ENCODING) as fr:
                 cur_list = pd.read_csv(self.races_list_path)
                 fr.close()
+            # Hash existing ID list to accelerate matching
+            cur_list_ids_dict = dict([item[-1::-1] for item in cur_list['ID'].items()])
         except FileNotFoundError:
             cur_list = pd.DataFrame()
+            cur_list_ids_dict = {}
 
         for item in os.listdir(self.source_dir):
-            if os.path.splitext(item)[0] in races:
+            if os.path.splitext(item)[0] in races:  # 判断该文件是否为赛段信息文件
                 cur_race = os.path.splitext(item)[0]
                 workbook = pd.read_excel(os.path.join(self.source_dir, item),  # Gets a dict
                                          sheet_name=None, encoding=ENCODING)
@@ -70,11 +73,11 @@ class RacesList(object):
                     actual_stage_count = 0
                     for cur_row in cur_sheet.iterrows():
                         if not pd.isna(cur_row[1]['NUM']):  # This is stage information
-                            print("    ------ Examining stage {} ------".format(cur_row[1]['NUM']))
-                            num = cur_row[1]['NUM']
+                            stage_num = cur_row[1]['NUM']
+                            print("    ------ Examining stage {} ------".format(stage_num))
                             stage_meta_df = pd.DataFrame({
                                 'ID': self._create_id(cur_race, year, cur_row[1]),
-                                'Nominal Stage Number': int(float(num)) if self._is_int(num) else num,
+                                'Nominal Stage Number': int(float(stage_num)) if self._is_int(stage_num) else stage_num,
                                 'Actual Stage Number': self._get_actual_stage_number(has_prologue, cur_row[1]),
                                 'Race': cur_race,
                                 'Year': year,
@@ -88,8 +91,14 @@ class RacesList(object):
                                 'Type': self._get_stage_type(cur_row[1]),
                                 'Profile': cur_row[1]['TYPE']  # For now, the profile of a time trial is not clear.
                             }, index=[0])
-                            if len(cur_list) == 0 or stage_meta_df['ID'][0] not in cur_list['ID']:
+                            if len(cur_list) == 0 or cur_list_ids_dict.get(stage_meta_df['ID'][0]) is None:
                                 cur_list = pd.concat([cur_list, stage_meta_df], ignore_index=True, sort=False)
+                                cur_list_ids_dict.update([(stage_meta_df['ID'][0], len(cur_list_ids_dict))])
+                                print("        -- Stage {} of {} {} newly appended --"
+                                      .format(stage_num, cur_race, year))
+                            else:
+                                print("        -- Stage {} of {} {} already exists --"
+                                      .format(stage_num, cur_race, year))
                             actual_stage_count += 1
                         elif not pd.isna(cur_row[1]['TYPE']):  # This is race information
                             key = cur_row[1]['TYPE']
@@ -115,8 +124,12 @@ class RacesList(object):
                             'Has Prologue': has_prologue,
                             'Is A Stage': False
                         }))
-                        if len(cur_list) == 0 or race_meta_df['ID'][0] not in cur_list['ID']:
+                        if len(cur_list) == 0 or cur_list_ids_dict.get(race_meta_df['ID'][0]) is None:
                             cur_list = pd.concat([cur_list, race_meta_df], ignore_index=True, sort=False)
+                            cur_list_ids_dict.update([(race_meta_df['ID'][0], len(cur_list_ids_dict))])
+                            print("    ------ {} {} newly appended ------".format(cur_race, year))
+                        else:
+                            print("    ------ {} {} already exists ------".format(cur_race, year))
                         basics.write_csv_bom(cur_list, self.races_list_path)
         return
 

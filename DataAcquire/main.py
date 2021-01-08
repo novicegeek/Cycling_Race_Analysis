@@ -1,15 +1,14 @@
+# -*- coding: utf-8 -*-
 """Initiating module."""
 
 
 import download
 
 
-# %%
 if __name__ == '__main__':
-    downloader = download.UCIDownloader(download_dir=download.ROOT+r"/TestData/TestRankingForm")
+    downloader = download.UCIDownloader()
     sleep = 5
-    season_input = 2021
-    # competition_input = ["Ronde van Vlaanderen - Tour des Flandres", "Ronde van Vlaanderen-Tour des Flandres"]
+    season_input = list(range(2009, 2020))
     # competition_input = ["Ronde van Vlaanderen / Tour des Flandres",
     #                      "Ronde van Vlaanderen - Tour des Flandres", "Ronde van Vlaanderen-Tour des Flandres",
     #                      "Ronde van Vlaanderen", "Tour des Flandres", "De Ronde van Vlaanderen",
@@ -19,9 +18,9 @@ if __name__ == '__main__':
     #                      "Milano-Sanremo", "Milano - Sanremo",
     #                      "Championnats du Monde Route UCI / UCI Road World Championships",
     #                      "Championnats du Monde Route UCI", "UCI Road World Championships"]
-    competition_input = ["Vuelta Ciclista al Ecuador"]
+    competition_input = ["Tirreno-Adriatico", "Tirreno - Adriatico"]
     # race_input = [' '.join(['Stage', str(i)]) for i in range(1, 18)]
-    race_input = 'Stage 6'
+    race_input = 'all'
     # event = ['General classification', 'Stage Classification']
 
     # while downloader:
@@ -60,7 +59,7 @@ if __name__ == '__main__':
 
     try:
         downloader.auto_download(seasons_year=season_input, competitions_name=competition_input,
-                                 races_name=race_input, time_sleep=sleep, option='exportRankingForm')
+                                 races_name=race_input, time_sleep=sleep, option='exportResultForm')
     except Exception:
         print("Downloading failed.")
     else:

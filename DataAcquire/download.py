@@ -2,7 +2,6 @@
 """The core downloading module."""
 
 
-# %%
 import copy
 import json
 import os
@@ -24,7 +23,6 @@ ENCODING = global_vars.get_value('ENCODING')
 ROOT = global_vars.get_value('ROOT')
 
 
-# %%
 class UCIDownloader(object):
     """Perform the downloading task."""
 

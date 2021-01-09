@@ -22,4 +22,7 @@ set_value('MULTI-STAGES', ('Tour de France', "Giro d'Italia", 'Vuelta a España'
 set_value('RACES', ('Tour de France', "Giro d'Italia", 'Vuelta a España',
                     'Tour de Suisse', 'Critérium du Dauphiné', 'Paris-Nice', 'Tirreno-Adriatico',
                     'Il Lombardia', 'Liège-Bastogne-Liège', 'Milano-Sanremo', 'Paris-Roubaix', 'Ronde van Vlaanderen'))
+set_value('SINGLE-STAGE',
+          ('Il Lombardia', 'Liège-Bastogne-Liège', 'Milano-Sanremo', 'Paris-Roubaix', 'Ronde van Vlaanderen'))
+set_value('SEASONS', tuple([str(year) for year in range(2009, 2020)]))
 set_value('ROOT', r"D:\PKU\LuLab\Master'sThesis\Data")

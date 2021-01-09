@@ -188,3 +188,128 @@ class CyclistsList(object):
         count_align = '0' * (align - len(str(cur_count[country]))) + str(cur_count[country])
         new_id = country + count_align
         return cur_count, new_id
+
+
+class AddMissingCyclists(object):
+    """Add those missing in the converted raw General Classification list."""
+
+    def __init__(self):
+        self.converted_dir = os.path.join(ROOT, r"Converted_Raw")
+
+    def add_cyclists_to_raw(self, races='multi', seasons='all'):
+        """Add cyclists missing in the converted raw General Classification lists, for specified races and seasons.
+
+        :param races: What races to check. Can be 'all', 'multi' (default), 'single',
+            or full name of a specific race, or a list of full names of races.
+        :param seasons: What seasons to check. Can be 'all', or a specific year or a list of years,
+            each of int or str type.
+        """
+        if type(races) == str:
+            if races == 'all':
+                races = global_vars.get_value('RACES')
+            elif races == 'multi':
+                races = global_vars.get_value('MULTI-STAGES')
+            elif races == 'single':
+                races = global_vars.get_value('SINGLE-STAGE')
+            else:
+                races = [races]
+        else:
+            pass
+        if type(seasons) == str:
+            if seasons == 'all':
+                seasons = global_vars.get_value('SEASONS')
+            else:
+                seasons = [seasons]
+        elif type(seasons) == int:
+            seasons = [str(seasons)]
+        else:
+            seasons = [str(year) for year in seasons]
+        for race in races:
+            for season in seasons:
+                print("Checking {} {}".format(race, season))
+                cur_dir = os.path.join(self.converted_dir, race, season)
+                prim_ref_path, sec_ref_path, gc_path = [''] * 3
+                prim_ref_list, sec_ref_list, gc_list = list(map(lambda x: pd.DataFrame(), range(3)))
+                # Get S1_SC, S1_SGC and FC_GC file path
+                for file_name in os.listdir(cur_dir):
+                    if 'S1_SC' in file_name:
+                        prim_ref_path = os.path.join(cur_dir, file_name)
+                    elif 'S1_SGC' in file_name:
+                        sec_ref_path = os.path.join(cur_dir, file_name)
+                    elif 'FC_GC' in file_name:
+                        gc_path = os.path.join(cur_dir, file_name)
+                # Import as dataframes
+                if prim_ref_path:
+                    with open(prim_ref_path, 'r', encoding=ENCODING) as fr:
+                        prim_ref_list = pd.read_csv(fr)
+                        fr.close()
+                if sec_ref_path:
+                    with open(sec_ref_path, 'r', encoding=ENCODING) as fr:
+                        sec_ref_list = pd.read_csv(fr)
+                        fr.close()
+                if gc_path:
+                    with open(gc_path, 'r', encoding=ENCODING) as fr:
+                        gc_list = pd.read_csv(fr)
+                        fr.close()
+                # Check if anyone missing in the GC list; skip this iteration if not
+                if len(gc_list) == max(len(prim_ref_list), len(sec_ref_list), len(gc_list)):
+                    continue
+                # If is, set the primary reference list to be the one that is more "complete"
+                elif len(prim_ref_list) > len(sec_ref_list):
+                    pass
+                else:
+                    prim_ref_list = sec_ref_list
+                # Hash the GC list
+                gc_dict = {}
+                for row in gc_list.iterrows():
+                    try:
+                        key = row[1]['First Name'] + ' ' + row[1]['Last Name'] + '@' + row[1]['Country']
+                    except TypeError:  # Missing country information (np.nan can't be concatenated with a str)
+                        try:
+                            key = row[1]['First Name'] + ' ' + row[1]['Last Name']
+                        except TypeError:  # An empty row
+                            pass
+                        else:
+                            gc_dict.update({key: row[0]})
+                    else:
+                        gc_dict.update({key: row[0]})
+
+                total_updates = 0
+                for row in prim_ref_list.iterrows():
+                    gc_dict, gc_list, update = self._check_cyclist(gc_dict, row[1], gc_list)
+                    total_updates += update
+                if total_updates and gc_path:
+                    basics.write_csv_bom(gc_list, gc_path)
+                    print("    GC list for {} {} re-written".format(race, season))
+                elif total_updates:  # No GC list has existed before
+                    gc_path = os.path.join(cur_dir, r"FC_GC_IRR.csv")
+                    basics.write_csv_bom(gc_list, gc_path)
+                    print("    GC list for {} {} newly created since none has existed before, "
+                          "and named 'FC_GC_IRR.csv'".format(race, season))
+        return
+
+    @staticmethod
+    def _check_cyclist(gc_dict, row, gc_list,
+                       fields=('BIB', 'Last Name', 'First Name', 'Country', 'Team', 'Gender', 'Age')):
+        """Check if a single cyclist is in the GC list.
+
+        :param gc_dict: The dictionary generated from GC list as a reference. Structure: {Full Name@Country: row_index}.
+            Similarly in gen_var.py.
+        :param row: The data row of Series type, extracted from a dataframe.
+        :param gc_list: The existing list to append to.
+        :return:
+            gc_dict-The updated gc_dict,
+            gc_list-The updated gc_list,
+            update-1 or 0. Whether the gc_list is updated (new cyclist(s) appended) by this call.
+        """
+        update = 0
+        key = row['First Name'] + ' ' + row['Last Name'] + '@' + row['Country']
+        key_no_country = row['First Name'] + ' ' + row['Last Name']
+        if (gc_dict.get(key) is None) and (gc_dict.get(key_no_country) is None):  # Missing in the current GC list
+            index = len(gc_list)
+            for field in fields:
+                gc_list.loc.__setitem__((index, field), row[field])
+            gc_dict.update({key: index})
+            print("    {} newly appended".format(key))
+            update = 1
+        return gc_dict, gc_list, update

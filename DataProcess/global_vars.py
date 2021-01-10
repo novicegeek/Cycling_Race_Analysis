@@ -17,6 +17,7 @@ def get_value(key):
 
 
 set_value('ENCODING', 'utf-8')
+set_value('GRAND TOUR', ('Tour de France', "Giro d'Italia", 'Vuelta a España'))
 set_value('MULTI-STAGES', ('Tour de France', "Giro d'Italia", 'Vuelta a España',
                            'Tour de Suisse', 'Critérium du Dauphiné', 'Paris-Nice', 'Tirreno-Adriatico'))
 set_value('RACES', ('Tour de France', "Giro d'Italia", 'Vuelta a España',

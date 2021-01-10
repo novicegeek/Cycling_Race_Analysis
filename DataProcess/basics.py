@@ -50,6 +50,47 @@ def is_number(s):
         return False
 
 
+def get_races_list(races):
+    """Set the variable 'races' to be iterable according to the input value of the parameter."""
+    if type(races) == str:
+        if races == 'Grand Tour':
+            races = global_vars.get_value('GRAND TOUR')
+        elif races == 'all':
+            races = global_vars.get_value('RACES')
+        elif races == 'multi':
+            races = global_vars.get_value('MULTI-STAGES')
+        elif races == 'single':
+            races = global_vars.get_value('SINGLE-STAGE')
+        else:
+            races = [races]
+    else:
+        pass
+    return list(races)
+
+
+def get_seasons_list(seasons):
+    """Set the variable 'seasons' to be iterable according to the input value of the parameter."""
+    if type(seasons) == str:
+        if seasons == 'all':
+            seasons = global_vars.get_value('SEASONS')
+        else:
+            seasons = [seasons]
+    elif type(seasons) == int:
+        seasons = [str(seasons)]
+    else:
+        seasons = [str(year) for year in seasons]
+    return list(seasons)
+
+
+def get_result_types_list(result_types):
+    """Set the variable 'result_types' to be iterable according to the input value of the parameter."""
+    if type(result_types) == str:
+        result_types = [result_types]
+    else:
+        result_types = list(result_types)
+    return result_types
+
+
 def time2sec(time):
     """Transform an input time to a number indicating the corresponding second counts.
 

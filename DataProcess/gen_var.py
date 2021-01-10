@@ -308,109 +308,137 @@ class DataExtracter(object):
 
     def __init__(self, root=None):
         self.root = ROOT if not root else root
-        self.save_root = os.path.join(root, 'Converted_Extracted')
-        if not os.path.exists(self.save_root):
-            os.makedirs(self.save_root)
+        self.source_dir = os.path.join(self.root, r"Converted_Tidied")
+        self.extract_dir = os.path.join(self.root, r"Converted_Extracted")
+        if not os.path.exists(self.extract_dir):
+            os.makedirs(self.extract_dir)
         return
 
-    def extract_all(self, race_range='Grand Tour', year_range=None, result_types=('SC', 'SGC', 'GC')):
+    def extract_all(self, races='Grand Tour', seasons='all', result_types=('SC', 'SGC', 'GC')):
         """The adapter method for batch extracting information from data files.
 
         By default, only the Grand Tours and Stage Classification, Stage General Classification
         and General Classification will be extracted.
+
+        :param races: Can be 'Grand Tour' (default), 'all', 'multi', 'single', the full name of a single race,
+            or a list of full names of races.
+        :param seasons: Can be 'all' (default, from 2009 to 2019), a single season of int or str type,
+            or a list of seasons each of int or str type.
+        :param result_types: By default only Stage Classification, Stage General Classification
+            and General Classification results will be extracted.
         """
-        tidy_root = os.path.join(self.root, 'Converted_Tidied')
-        path_tidy_log = os.path.join(tidy_root, 'tidy_log.txt')
+        path_tidy_log = os.path.join(self.root, r"Converted_Raw\tidy_log.txt")
         tidy_log = log.auto_read_log(path_tidy_log)
-        path_extract_log = os.path.join(self.save_root, 'extract_log.txt')
+        path_extract_log = os.path.join(self.source_dir, r"extract_log.txt")
         extract_log = log.auto_read_log(path_extract_log)
 
-        if race_range == 'Grand Tour':
-            race_range = ['Tour de France', "Giro d'Italia", 'Vuelta a España']
-        elif type(race_range) == str:
-            race_range = [race_range]
+        if type(races) == str:
+            if races == 'Grand Tour':
+                races = ['Tour de France', "Giro d'Italia", 'Vuelta a España']
+            elif races == 'all':
+                races = global_vars.get_value('RACES')
+            elif races == 'multi':
+                races = global_vars.get_value('MULTI-STAGES')
+            elif races == 'single':
+                races = global_vars.get_value('SINGLE-STAGE')
+            else:
+                races = [races]
+        else:
+            pass
+
+        if type(seasons) == str:
+            if seasons == 'all':
+                seasons = global_vars.get_value('SEASONS')
+            else:
+                seasons = [seasons]
+        elif type(seasons) == int:
+            seasons = [str(seasons)]
+        else:
+            seasons = [str(season) for season in seasons]
 
         try:
-            for race in race_range:
-                if not year_range:
-                    # extract all years
-                    race_dir = os.path.join(tidy_root, race)
-                    for item in os.listdir(race_dir):
-                        if os.path.isdir(os.path.join(race_dir, item)):
-                            extract_log = self.extract(tidy_root, race, item, result_types, tidy_log, extract_log)
-                            log.auto_write_log(extract_log, path_extract_log)
-                else:
-                    # extract only specified years
-                    for year in year_range:
-                        extract_log = self.extract(tidy_root, race, year, result_types, tidy_log, extract_log)
-                        log.auto_write_log(extract_log, path_extract_log)
+            for race in races:
+                for season in seasons:
+                    extract_log = self.extract(self.source_dir, race, season, result_types, tidy_log, extract_log)
+                    log.auto_write_log(extract_log, path_extract_log)
         finally:
             log.auto_write_log(extract_log, path_extract_log)
         return
 
-    def extract(self, root, race, year, result_types, tidy_log, extract_log):
+    def extract(self, source_dir, race, season, result_types, tidy_log, extract_log):
         """Extract information for a single race and year.
         
         return: Extract log.
         """
-        year = str(year)
-        save_dir = os.path.join(self.save_root, race)
+        save_dir = os.path.join(self.extract_dir, race)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file_name = '_'.join([race, year, 'Extracts.csv'])
+        save_file_name = '_'.join([race, season, 'extracts.csv'])
 
         if save_file_name not in extract_log.keys() or \
                 extract_log[save_file_name] == 'N':
-            source_file_dir = os.path.join(root, race, year)
-            file_list = basics.get_file_list(source_file_dir, extension='.csv')
-            # Create cyclists start list and extract the demographic information, from the FC_GC file
-            # Including: Full name, nationality, team, gender, and age
-            extract_df = pd.DataFrame()
-            for file in file_list:
-                if 'FC_GC' in file:
-                    print("---------- Creating start list for {} {} ----------".format(race, year))
-                    with open(file, 'r', encoding=ENCODING) as fr:
-                        source_data = pd.read_csv(fr)
-                        fr.close()
-                    extract_df = self.create_start_list(source_data)
-                    break
-            for file in file_list:
-                file_name = os.path.split(file)[1]
-                stage, result_type, stage_type = os.path.splitext(file_name)[0].split('_')[2:]
-                if result_type in result_types and tidy_log[file_name] == 'Y':
-                    print("    ------ Extracting information from {} ------".format(file_name))
-                    with open(file, 'r', encoding=ENCODING) as fr:
-                        source_data = pd.read_csv(fr)
-                        fr.close()
-                    extract_df = self.add_extract_info(source_data, extract_df,
-                                                       stage_info=[stage, result_type, stage_type])
+            extract_df, file_path_list = self.create_start_list(source_dir, race, season)
+            start_list_dict = {}
+            for row in extract_df.iterrows():  # Hash the start list. Dict structure: {Cyclist ID: row_index}
+                start_list_dict.update({row[1]['Cyclist ID']: row[0]})
+            for file_path in file_path_list:
+                extract_df = self.add_extract_info(file_path, start_list_dict, extract_df, result_types, tidy_log)
             basics.write_csv_bom(extract_df, os.path.join(save_dir, save_file_name))
             extract_log[save_file_name] = 'Y'
 
         return extract_log
 
     @staticmethod
-    def create_start_list(source_data, fields=('Full Name', 'Country', 'Team', 'Gender', 'Age')):
-        """Create start list and extract the cyclists' demographic information."""
+    def create_start_list(source_dir, race, season,
+                          fields=('Full Name', 'Country', 'Cyclist ID', 'Team', 'Gender', 'Age')):
+        """Create start list and extract the cyclists' demographic information, from the FC_GC file.
+
+        Including: Full name, nationality, cyclist ID, team, gender, and age.
+
+        :return: The start list for specified race and season, and the list of all file paths in this directory.
+        """
+        print("Creating start list for {} {}".format(race, season))
+
+        cur_dir = os.path.join(source_dir, race, season)
+        file_path_list = basics.get_file_list(cur_dir, extension='.csv')
+        for file in file_path_list:
+            if 'FC_GC' in file:
+                with open(file, 'r', encoding=ENCODING) as fr:
+                    source_data = pd.read_csv(fr)
+                    fr.close()
+                break
         start_list = pd.DataFrame(source_data[[field for field in fields]])
-        return start_list
+
+        return start_list, file_path_list
 
     @staticmethod
-    def add_extract_info(source_data, extract_df, stage_info, extract_fields=('Rank', 'Rank_Norm', 'Time Lag_Norm')):
-        """Add information to the extract data file."""
-        new_fields = {}
-        for field in extract_fields:
-            new_fields[field] = '_'.join(stage_info+[field])
-        cyclists = extract_df['Full Name']
-        for row in source_data.iterrows():
-            cyclist = row[1]['Full Name']
-            try:
-                match_row = cyclists[cyclists == cyclist].index[0]  # To get the index of row of the cyclist
-                for field in extract_fields:
-                    extract_df.loc.__setitem__((match_row, new_fields[field]), row[1][field])
-            except IndexError:  # If no cyclist matches, adds it as a new row (but this is not supposed to happen)
-                new_data = pd.DataFrame(dict([(key, row[1].get(key)) for key in extract_fields]), index=[0])
-                extract_df = pd.concat([extract_df, new_data], ignore_index=True, sort=False)
+    def add_extract_info(source_file_path, start_list_dict, extract_df, result_types, tidy_log,
+                         extract_fields=('Rank', 'Rank_Norm', 'Time Lag_Norm')):
+        """Add information to the extract data file.
+
+        :return: The updated dataframe storing extracted information.
+        """
+        file_name = os.path.split(source_file_path)[1]
+        result_type, stage_type = os.path.splitext(file_name)[0].split('_')[3:]
+
+        if result_type in result_types and tidy_log[file_name] == 'Y':  # Only extract from tidied files; else pass
+            with open(source_file_path, 'r', encoding=ENCODING) as fr:
+                source_data = pd.read_csv(fr)
+                fr.close()
+            print("    Extracting information from {}".format(file_name))
+
+            new_fields = {}
+            for field in extract_fields:  # Header format: Race ID_ResultType_StageType_Variable
+                new_fields[field] = '_'.join([source_data['Race ID'][0], result_type, stage_type, field])
+            for row in source_data.iterrows():
+                index = start_list_dict.get(row[1]['Cyclist ID'])
+                if index is not None:
+                    for field in extract_fields:
+                        extract_df.loc.__setitem__((index, new_fields[field]), row[1][field])
+                else:  # If no cyclist matches (but this is not supposed to happen)
+                    print("    {} (ID: {}) not found in the start list"
+                          .format(row[1]['Full Name'], row[1]['Cyclist ID']))
+
         return extract_df
 
 

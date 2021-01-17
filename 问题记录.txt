@@ -1,7 +1,79 @@
-# 文件缺失：2011年环意第四赛段无数据（UCI官网也没有）--由于Wouter Weylandt在第三赛段中不幸身亡，组委会取消了第四赛段的比赛，改为所有车手集体骑行悼念
+## 文件缺失（均已在races_list.csv中标记）：
+    # 2011年环意第4赛段：由于Wouter Weylandt在第三赛段中不幸身亡，组委会取消了第四赛段的比赛，改为所有车手集体骑行悼念
+    # 2013年环意第19赛段：天气原因取消
+    # 2016年Paris-Nice第3赛段：天气原因中途终止
+    # 2016年Tirreno-Adriatico第5赛段：天气原因取消
+    # 特例：2019年环法第19赛段，进行大部分之后由于天气和地质原因终止，官方无SC成绩，但是有SGC成绩（根据到其中一个坡顶时的比赛时间来排定）
 
-# 车手名单缺失：Tidy的时候发现，部分比赛最后的GC名单并不包含未完赛车手，导致部分车手漏添加到cyclists list中，tidy时会发现找不到这些车手。目前仅在非大环赛中发现此问题，且多数车手即便未被某一届GC名单列入，也已因为在其他GC名单中而被加入到cyclists list里，漏掉的数量不多（目测~20人）。但是这些有遗漏车手的tidy文件在tidy log中也被标记为“Y”状态，需要修补漏洞。Converted_Raw\tidy_warning_log.txt。
 
+## Raw文件信息缺失（仅SC、SGC和GC）：
+    # 注意：在excel中不带+输入成绩时，前面也要加上'，否则读取出来会变成datetime.time类而不是str
+
+    # 已解决：
+    # （√）车手名单缺失：部分比赛最后的GC名单并不包含未完赛车手，导致部分车手漏添加到cyclists list中，tidy时会发现找不到这些车手。Converted_Raw\tidy_warning_log.txt以及add_missing_log.txt
+    # （√）Nuno MATOS在2017年Paris-Roubaix赛中Team信息缺失，已在Converted_Raw中补上
+
+    # 大环赛：
+    # 2009年环意从头到尾有多名车手的Team信息缺失
+    # （√）2009年环意第15赛段SC：所有人成绩空缺，也是因为冠军兴奋剂违规
+    # （√）2011年环意第3赛段Wouter Weylandt身亡，补充其该届比赛的country信息（包括前3赛段的SC、SGC和GC）
+    # （√）2013年环意第12赛段SC：同时到达（时间差+0）的车手当中有多人这一栏为空值
+    # （√）2016年环意第21赛段SC：同时到达（时间差+0）的车手当中有多人这一栏为空值
+    # （√）2009年环西第19赛段SC：冠军Juan Jose COBO ACEBO被剥夺成绩，后面选手的排名、时间显示都未更新（替补冠军还是+2这种格式）；后面的赛段没问题
+    # （√）2010年环西第15赛段所有人的SC时间缺失，原因是有包括冠军在内的多名车手赛后查出兴奋剂违规，被取消成绩，官方并未在该赛段的成绩公告中进行更新；后面的赛段没问题
+    #  （⚪，只处理了GC和15赛段的SC）2011年环西总冠军Cobo于2019年被查出兴奋剂问题，剥夺了其当年的数个冠军，Froome成为新冠军，但在GC名单中其成绩栏缺失。
+        注意：在FC_GC记录中，官方只把更正后的前三名成绩进行了更改，从第四名开始表示的时差仍是相对于原来的冠军Cobo的数据，考虑一下这里要怎么改
+        15赛段的SC、15-21赛段的SGC由于Cobo都是冠军，所以数据表都有问题
+    # （√）2017年环西17赛段SC：冠军Stefan Denifl因兴奋剂被取消成绩，后面的人排名和成绩格式没改
+
+    # 其他多日赛
+    # 2017年Dauphiné赛Jesus Hernandez Blazquez在所有的赛段SC和SGC文件中Team信息缺失，但是GC中有
+    # 2018年Dauphiné赛Daniel Garcia Narvarro在所有的SC、SGC和GC文件中Team信息缺失
+    # 2009年Paris-Nice：所有SGC文件都缺Team信息
+    # 2017年S1（SC、SGC）、S2（SC），2018年S3（SC），Paris-Nice：有Team缺失
+    # 2009年Tirreno-Adriatico赛：每个赛段和GC都有多人Team缺失
+    # （√）2015年Tirreno-Adriatico第1赛段：Enrico BATTAGLIN正常完赛，但没有时间成绩
+    # 2017年环瑞士赛：各赛段均有1-2人Team缺失（可能为同2个人）
+
+    # 单日赛
+    # 2009年Il Lombardia：多人Team缺失
+    # （√）2018年Il Lombardia：James Shaw和Omer Goldshtein的年龄信息缺失（excel中第127和130行）
+    # （√）2019年Il Lombardia：Omer Goldshtein年龄缺失（excel第143行）
+    # 2009-2016、2018年列日赛：多人Team缺失
+    # 2009、2018米兰-圣雷莫赛：多人Team缺失
+    # 2009年、2014-2017年巴黎-鲁贝赛：多人Team缺失
+    # 2009-2016年环弗兰德斯赛：多人Team缺失
+
+
+## Raw文件其他异常记录（仅SC、SGC和GC）：
+    # （√）2011年Dauphiné赛第7赛段最后多名车手无ranking但有时间、且IRM为空：超过关门时间（OTL）
+        ——已经处理，但是类似的情况很多，其实不用管
+    # （√）2015年Dauphiné赛第8赛段第91名Peter Kennaugh有正常成绩，但是IRM显示为DNF，查了很多网站都没有查到同样的记录和原因
+    # （√）2017年Dauphiné赛第2赛段SC，Edward Theuns为OTL但依然有排名
+    # （√）2015年环瑞士赛S8的SC：Thomas Leezer有正常成绩，但显示为DNF
+
+
+## Raw文件有改动的赛事和年份：
+    # tbc_list = (
+           ("Giro d'Italia", (2009, 2011, 2013, 2016)),
+           ("Vuelta a España", (2009, 2010, 2011, 2017)),
+           ("Critérium du Dauphiné", (2011, 2015, 2017)),
+           ("Tour de Suisse", 2015),
+           ("Tirreno-Adriatico", 2015),
+           ("Il Lombardia", (2018, 2019))
+       )
+
+
+## GC名单不完整（Convert完了之后要注意有涉及到的重新add missing list）：
+    # 2017-2019赛季所有的多日赛（3+4=7）
+
+
+
+
+
+
+
+================================= 更旧的问题 ==================================
 ##从Extracts文件里发现：
 1.环意2009年：
     1）startlist出现了很多人被划到同一队、排名相同的情况--源文件的S1（TTT）的SC成绩里很多人的队伍信息和排名空缺

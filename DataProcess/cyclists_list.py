@@ -313,3 +313,47 @@ class AddMissingCyclists(object):
             print("    {} newly appended".format(key))
             update = 1
         return gc_dict, gc_list, update
+
+
+class CreateCyclistRecords(object):
+    """Create individual .json documents for EVERY SINGLE cyclist, recording his records of finishing races."""
+
+    def __init__(self):
+        self.record_dir = os.path.join(ROOT, r"Cyclist_Records")
+
+    def add_record(self, cyclist_row, result_type, include_not_finish=True):
+        """
+        :param cyclist_row: Should be of pandas.core.series.Series type.
+        :param result_type: What type of result this file is of (i.e., SC, GC, ...).
+        :param include_not_finish: Whether to write race if the cyclist didn't finish this race normally.
+        """
+        if type(cyclist_row['Cyclist ID']) != str:
+            print("  {} (of {}) is not a valid cyclist ID."
+                  .format(cyclist_row['Cyclist ID'], cyclist_row['Full Name']))
+            return
+        elif not include_not_finish and pd.isna(cyclist_row['Rank']):
+            return
+        else:
+            file_name = cyclist_row['Cyclist ID'] + '.json'
+            file_path = os.path.join(self.record_dir, file_name)
+            if not os.path.exists(os.path.split(file_path)[0]):
+                os.makedirs(os.path.split(file_path)[0])
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding=ENCODING) as fr:
+                    record_dict = json.load(fr)
+                    fr.close()
+            else:
+                record_dict = {}
+            race_id = cyclist_row['Race ID']
+            # Dictionary structure: {race_id_1: {result_type_1: {field_1: value_1, ...}, ...}, ...}
+            if record_dict.get(race_id) is None:
+                record_dict[race_id] = {result_type: {}}
+            elif record_dict[race_id].get(result_type) is None:
+                record_dict[race_id][result_type] = {}
+            record_dict[race_id][result_type] = dict(
+                [(field, cyclist_row[field]) for field in global_vars.get_value('RESULT FIELDS')]
+            )
+            with open(file_path, 'w', encoding=ENCODING) as fw:
+                json.dump(record_dict, fw)
+                fw.close()
+            return

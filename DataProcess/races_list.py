@@ -42,7 +42,7 @@ class RacesList(object):
     """Create races list and other information."""
 
     def __init__(self):
-        self.source_dir = os.path.join(ROOT, r"MetaData")
+        self.source_dir = os.path.join(ROOT, r"MetaData\races_meta_data")
         self.races_list_path = os.path.join(ROOT, r"MetaData\races_list.csv")
 
     def create_list(self, races=('Tour de France', "Giro d'Italia", 'Vuelta a España')):
@@ -60,77 +60,77 @@ class RacesList(object):
             cur_list = pd.DataFrame()
             cur_list_ids_dict = {}
 
-        for item in os.listdir(self.source_dir):
-            if os.path.splitext(item)[0] in races:  # 判断该文件是否为赛段信息文件
-                cur_race = os.path.splitext(item)[0]
-                workbook = pd.read_excel(os.path.join(self.source_dir, item),  # Gets a dict
-                                         sheet_name=None, encoding=ENCODING)
-                is_multi_stage = 1 if cur_race in MULTI_STAGES else 0
-                race_meta_df = pd.DataFrame()
-                for year, cur_sheet in workbook.items():  # year is the sheet name; cur_sheet is a dataframe
-                    print("---------- Examining {} {} ----------".format(cur_race, year))
-                    has_prologue = 1 if cur_sheet['NUM'][0] == 'P' else 0
-                    actual_stage_count = 0
-                    for cur_row in cur_sheet.iterrows():
-                        if not pd.isna(cur_row[1]['NUM']):  # This is stage information
-                            stage_num = cur_row[1]['NUM']
-                            print("    ------ Examining stage {} ------".format(stage_num))
-                            stage_meta_df = pd.DataFrame({
-                                'ID': self._create_id(cur_race, year, cur_row[1]),
-                                'Nominal Stage Number': int(float(stage_num)) if self._is_int(stage_num) else stage_num,
-                                'Actual Stage Number': self._get_actual_stage_number(has_prologue, cur_row[1]),
-                                'Race': cur_race,
-                                'Year': year,
-                                'Is Multi-Stage': is_multi_stage,
-                                'Has Prologue': has_prologue,
-                                'Is A Stage': 1 if is_multi_stage else np.nan,
-                                'Date': self._get_date(cur_row[1], source='La FlammeRouge'),
-                                'Depart': cur_row[1]['DEPART AND ARRIVE'].split('>')[0].strip(),
-                                'Arrive': cur_row[1]['DEPART AND ARRIVE'].split('>')[1].strip(),
-                                'Length': cur_row[1]['LENGTH'].split('Km')[0].strip(),  # To keep 2 decimal digits
-                                'Type': self._get_stage_type(cur_row[1]),
-                                'Profile': cur_row[1]['TYPE']  # For now, the profile of a time trial is not clear.
-                            }, index=[0])
-                            if len(cur_list) == 0 or cur_list_ids_dict.get(stage_meta_df['ID'][0]) is None:
-                                cur_list = pd.concat([cur_list, stage_meta_df], ignore_index=True, sort=False)
-                                cur_list_ids_dict.update([(stage_meta_df['ID'][0], len(cur_list_ids_dict))])
-                                print("        -- Stage {} of {} {} newly appended --"
-                                      .format(stage_num, cur_race, year))
-                            else:
-                                print("        -- Stage {} of {} {} already exists --"
-                                      .format(stage_num, cur_race, year))
-                            actual_stage_count += 1
-                        elif not pd.isna(cur_row[1]['TYPE']):  # This is race information
-                            key = cur_row[1]['TYPE']
-                            value = cur_row[1]['LENGTH']
-                            if key == 'Total distance':
-                                value = value.split('Km')[0].strip()
-                                race_meta_df.loc.__setitem__((0, key), value)
-                                race_meta_df.loc.__setitem__((0, 'Total stages'), actual_stage_count)
-                                race_meta_df.loc.__setitem__((0, 'Average distance'),
-                                                             str(round(float(value)/actual_stage_count, 2)))
-                            else:
-                                if self._is_int(value):
-                                    value = int(value)
-                                race_meta_df.loc.__setitem__((0, key), value)
-                        else:
-                            pass
-                    if is_multi_stage:
-                        race_meta_df = pd.DataFrame(dict(dict(race_meta_df), **{
-                            'ID': self._create_id(cur_race, year),
-                            'Race': cur_race,
+        for race in races:
+            workbook = pd.read_excel(os.path.join(self.source_dir, race),  # Gets a dict
+                                     sheet_name=None, encoding=ENCODING)
+            is_multi_stage = 1 if race in MULTI_STAGES else 0
+            race_meta_df = pd.DataFrame()
+            for year, cur_sheet in workbook.items():  # year is the sheet name; cur_sheet is a dataframe
+                print("---------- Examining {} {} ----------".format(race, year))
+                has_prologue = 1 if cur_sheet['NUM'][0] == 'P' else 0
+                actual_stage_count = 0
+                for cur_row in cur_sheet.iterrows():
+                    if not pd.isna(cur_row[1]['NUM']):  # This is stage information
+                        stage_num = cur_row[1]['NUM']
+                        print("    ------ Examining stage {} ------".format(stage_num))
+                        stage_meta_df = pd.DataFrame({
+                            'ID': self._create_id(race, year, cur_row[1]),
+                            'Nominal Stage Number': int(float(stage_num)) if self._is_int(stage_num) else stage_num,
+                            'Actual Stage Number': self._get_actual_stage_number(has_prologue, cur_row[1]),
+                            'Race': race,
                             'Year': year,
                             'Is Multi-Stage': is_multi_stage,
                             'Has Prologue': has_prologue,
-                            'Is A Stage': False
-                        }))
-                        if len(cur_list) == 0 or cur_list_ids_dict.get(race_meta_df['ID'][0]) is None:
-                            cur_list = pd.concat([cur_list, race_meta_df], ignore_index=True, sort=False)
-                            cur_list_ids_dict.update([(race_meta_df['ID'][0], len(cur_list_ids_dict))])
-                            print("    ------ {} {} newly appended ------".format(cur_race, year))
+                            'Is A Stage': 1 if is_multi_stage else np.nan,
+                            'Date': self._get_date(cur_row[1], source='La FlammeRouge'),
+                            'Depart': cur_row[1]['DEPART AND ARRIVE'].split('>')[0].strip(),
+                            'Arrive': cur_row[1]['DEPART AND ARRIVE'].split('>')[1].strip(),
+                            'Length': cur_row[1]['LENGTH'].split('Km')[0].strip(),  # To keep 2 decimal digits
+                            'Type': self._get_stage_type(cur_row[1]),
+                            'Profile': cur_row[1]['TYPE']  # For now, the profile of a time trial is not clear.
+                        }, index=[0])
+                        if len(cur_list) == 0 or cur_list_ids_dict.get(stage_meta_df['ID'][0]) is None:
+                            cur_list = pd.concat([cur_list, stage_meta_df], ignore_index=True, sort=False)
+                            cur_list_ids_dict.update([(stage_meta_df['ID'][0], len(cur_list_ids_dict))])
+                            print("        -- Stage {} of {} {} newly appended --"
+                                  .format(stage_num, race, year))
                         else:
-                            print("    ------ {} {} already exists ------".format(cur_race, year))
-                        basics.write_csv_bom(cur_list, self.races_list_path)
+                            print("        -- Stage {} of {} {} already exists --"
+                                  .format(stage_num, race, year))
+                        actual_stage_count += 1
+                    elif not pd.isna(cur_row[1]['TYPE']):  # This is race information
+                        key = cur_row[1]['TYPE']  # Now the titles are indices (like a transposition)
+                        value = cur_row[1]['LENGTH']
+                        if key == 'Total distance':
+                            value = value.split('Km')[0].strip()
+                            race_meta_df.loc.__setitem__((0, key), value)
+                            race_meta_df.loc.__setitem__((0, 'Total stages'), actual_stage_count)
+                            race_meta_df.loc.__setitem__((0, 'Average distance'),
+                                                         str(round(float(value)/actual_stage_count, 2)))
+                        else:
+                            if self._is_int(value):
+                                value = int(value)
+                            race_meta_df.loc.__setitem__((0, key), value)
+                    else:
+                        pass
+                if is_multi_stage:
+                    race_meta_df = pd.DataFrame(dict(dict(race_meta_df), **{
+                        'ID': self._create_id(race, year),
+                        'Race': race,
+                        'Year': year,
+                        'Is Multi-Stage': is_multi_stage,
+                        'Has Prologue': has_prologue,
+                        'Is A Stage': False,
+                        'Length': race_meta_df.loc.__getitem__((0, 'Total distance')),
+                        'Type': 'OVR'
+                    }))
+                    if len(cur_list) == 0 or cur_list_ids_dict.get(race_meta_df['ID'][0]) is None:
+                        cur_list = pd.concat([cur_list, race_meta_df], ignore_index=True, sort=False)
+                        cur_list_ids_dict.update([(race_meta_df['ID'][0], len(cur_list_ids_dict))])
+                        print("    ------ {} {} newly appended ------".format(race, year))
+                    else:
+                        print("    ------ {} {} already exists ------".format(race, year))
+                    basics.write_csv_bom(cur_list, self.races_list_path)
         return
 
     @staticmethod

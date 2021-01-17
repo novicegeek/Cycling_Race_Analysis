@@ -26,4 +26,6 @@ set_value('RACES', ('Tour de France', "Giro d'Italia", 'Vuelta a España',
 set_value('SINGLE-STAGE',
           ('Il Lombardia', 'Liège-Bastogne-Liège', 'Milano-Sanremo', 'Paris-Roubaix', 'Ronde van Vlaanderen'))
 set_value('SEASONS', tuple([str(year) for year in range(2009, 2020)]))
+set_value('RESULT FIELDS', ('Team', 'Age', 'Rank', 'Rank_Norm', 'Total Time', 'Time Lag_Norm',
+                            'Avg Speed (kph)', 'Avg Speed Rel to Winner', 'Avg Speed Rel to Median'))
 set_value('ROOT', r"D:\PKU\LuLab\Master'sThesis\Data")

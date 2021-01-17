@@ -7,6 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 import basics
+import cyclists_list
 import global_vars
 import log
 
@@ -24,7 +25,7 @@ class DataTidier(object):
         self.point_dict = {}
         return
 
-    def tidy_all(self, types=('SC', 'GC', 'SGC')):
+    def tidy_all(self, types=('SC', 'GC', 'SGC'), ignore_log=False, include_ttt=False, **kwargs):
         """
         Adapter method for tidying all data files.
 
@@ -38,45 +39,70 @@ class DataTidier(object):
 
         :param types: By default, only the data files of Stage Classification, General Classification
             or Stage General Classification will be tidied.
+        :param ignore_log: Boolean. If True, the file will be converted regardless of its record in the log.
+        :param include_ttt: Boolean.
         :return: The root FULL path storing the tided data files.
         """
         source_dir = os.path.join(self.root, 'Converted_Raw')
         tidy_dir = os.path.join(self.root, 'Converted_Tidied')
+        races_list_path = os.path.join(self.root, r"MetaData\races_list.csv")
+        with open(races_list_path, 'r', encoding=ENCODING) as fr:
+            races_list = pd.read_csv(fr)
+            fr.close()
+        races_dict = dict([(row[1]['ID'], row[0]) for row in races_list.iterrows()])
 
         # 对所有文件执行tidy
         file_list = basics.get_file_list(source_dir, extension='.csv')
+
         path_tidy_log = os.path.join(source_dir, 'tidy_log.txt')
         tidy_log = log.auto_read_log(path_tidy_log)
-        cyclists_list = pd.read_csv(ROOT + r'\MetaData\cyclists_list.csv', encoding=ENCODING)
+
+        path_tidy_warning_log = os.path.join(source_dir, 'tidy_warning_log.txt')
+        fw_warning = open(path_tidy_warning_log, 'w', encoding=ENCODING)
+
+        cyc_list = pd.read_csv(ROOT + r'\MetaData\cyclists_list.csv', encoding=ENCODING)
         cyclists_dict = dict(
             [
                 (
                     '@'.join(list(row[1][['Full Name', 'Country']])), row[1]['ID']
                 )
-                for row in cyclists_list.iterrows()
+                for row in cyc_list.iterrows()
             ]
         )  # Hash cur_list to accelerate matching. Dict structure: {Full Name@Country: ID}.
 
         try:
+            last_write = 0
             for file in file_list:
                 file_name = os.path.split(file)[1]
-                result_type = re.split('_', file_name)[3]
-                if result_type in types and \
-                        (file_name not in tidy_log.keys() or tidy_log[file_name] == 'N'):
+                stage, result_type, stage_type = re.split('[._]', file_name)[2:5]
+                if stage == 'FC' and result_type == 'SC':  # 注意FC情况的判断比较特殊，要考虑FC_SC这种混淆情况
+                    continue
+                elif not include_ttt and stage_type == 'TTT':
+                    continue
+                elif result_type in types and \
+                        (ignore_log or file_name not in tidy_log.keys() or tidy_log[file_name] == 'N'):
                     copy_file_path = self.file_copy(file)
-                    self.csv_tidy(copy_file_path, cyclists_dict)  # Only operates on copy of the raw file
-                    tidy_log[file_name] = 'Y'
+                    # Only operates on copy of the raw file
+                    new_file_name, fw_warning = self.csv_tidy(
+                        copy_file_path, cyclists_dict, races_list, races_dict, fw_warning, **kwargs
+                    )
+                    if new_file_name is not None:
+                        tidy_log[file_name] = new_file_name  # 因为文件名可能更改，为了找到对应就把value设置成新的文件名
+                        last_write += 1
+                    else:  # 返回None说明出错，需要跳过这一个文件，并且把已经复制的文件删除
+                        os.remove(copy_file_path)
+                        continue
+                if not last_write % 20:
+                    log.auto_write_log(tidy_log, path_tidy_log)
         finally:
             log.auto_write_log(tidy_log, path_tidy_log)
+            fw_warning.close()
 
-        # 将已经写入dict的积分信息写入对应的文件（待完善）
-        # for race in self.point_dict.keys():
-        #     for year in self.point_dict[race].keys():
-        #         for stage in self.point_dict[race][year].keys():
-        #             self.write_point_dict(race, year, stage)
         return tidy_dir
 
-    def csv_tidy(self, source_path, cyclists_dict, drop_list=('Phase', 'Heat')):
+    def csv_tidy(self, source_path, cyclists_dict, races_list, races_dict, fw_warning_log,
+                 drop_list=('Phase', 'Heat'),
+                 add_race_info=True, prior_check=True, rename=True, write_record_dict=True, **kwargs):
         """
         The core tidying method.
 
@@ -86,16 +112,54 @@ class DataTidier(object):
         :param cyclists_dict: The dictionary generated from cyclists_list, storing the full names,
             countries and row indexes for fast matching. Structure: {Full Name@Country: ID}.
             See also in cyclists_list.py.
-        :param drop_list: The titles of columns to be removed from the dataframe
+        :param races_list: The meta-data file of races.
+        :param races_dict: Dictionary storing the race information.
+        :param fw_warning_log: The TextIOWrapper of log for outputting warning information.
+        :param drop_list: The titles of columns to be removed from the dataframe.
+        :param add_race_info: Whether to add race information, including winner's average speed
+            and median average speed to the existing races list.
+        :param prior_check: Boolean (default True). Whether to perform data check before copying and calculating
+            derivative variables. Setting this to False will accelerate the tidying, but may leave the data flawed.
+        :param rename: Whether to rename the tidied file as race id_stage type_result type.csv (By default True).
+            If False, the file name will remain the same as is copied, i.e. the 5-segment format.
+        :param write_record_dict: Boolean. Whether to write the record into the .json file for this cyclist.
         """
         # Vuelta a España的ñ在路径中时用pd.read_csv()无法直接读取（编码问题），会导致无法读取文档，但是内建的open函数可以
         with open(source_path, 'r', encoding=ENCODING) as fr:
             raw_data = pd.read_csv(fr)
             fr.close()
         print("Tidying {} ...".format(os.path.split(source_path)[1]))
-        new_data_dict = {}
+        fw_warning_log.write("Tidying {} ...\n".format(os.path.split(source_path)[1]))
 
-        # 1.
+        # 第一步先检查这整个文件是否有效
+        time_winner = raw_data['Result'][0]
+        time_winner_sec = basics.time2sec(time_winner)
+        if pd.isna(time_winner_sec):  # 如果无人完赛或成绩为空字符串，则time2sec返回nan；如果成绩无法识别则会报错；否则会返回float
+            fw_warning_log.write("    Warning: The winner's time is invalid.\n")
+            return None, fw_warning_log
+
+        # Prior check
+        # 要避免的问题：
+        # 1) IRM不为空（非正常完赛），但还有ranking和time成绩（ranking应该已经被手动清除，但以防万一；time全设为nan）
+        #    ——如果是有ranking则print，否则将time写为nan
+        # 2) IRM为空，且time为空，但还有ranking（应该也已经被扫描出来，即可能为OTL之类的情况，但以防万一）  ——print
+        # 3) IRM为空，且ranking为空，但还有time（这种情况可能比较多，不用管）  ——将time写为nan
+        # 4) 冠军成绩无效？--SC和GC文件都已经改过了，SGC还没改  ——暂时不处理SGC
+        if prior_check:
+            for row in raw_data.iterrows():
+                if not pd.isna(row[1]['IRM']):
+                    if not pd.isna(row[1]['Rank']):
+                        fw_warning_log.write("    Cyclist {}: Both IRM and ranking exist\n".format(row[0]))
+                        return None, fw_warning_log
+                    elif not pd.isna(row[1]['Result']):
+                        raw_data.loc.__setitem__((row[0], 'Result'), np.nan)
+                else:
+                    if not pd.isna(row[1]['Rank']) and pd.isna(row[1]['Result']):
+                        fw_warning_log.write("    Cyclist {}: Ranking exists without time\n".format(row[0]))
+                        return None, fw_warning_log
+                    elif pd.isna(row[1]['Rank']) and not pd.isna(row[1]['Result']):
+                        raw_data.loc.__setitem__((row[0], 'Result'), np.nan)
+
         # To remove columns specified by parameter "drop_list"
         header_list = list(raw_data.columns)
         drop_list_list = list(drop_list)
@@ -104,7 +168,21 @@ class DataTidier(object):
                 drop_list_list.remove(item)
         raw_data.drop(drop_list_list, axis='columns', inplace=True)
 
-        # 2.
+        # Starters include DNS, DNF, DSQ and OTL cyclists
+        n_starters = len(raw_data)
+        info = self.game_info(source_path)
+        info_headers_dict = {'Race ID': 0, 'Date': 1, 'Race': 2, 'Stage': 3, 'Result Type': 4, 'Stage Type': 5}
+
+        # 对于TTT：检查是否每一行都填写了排名和队伍数据，按行遍历
+        stage_type = info[info_headers_dict['Stage Type']]
+        if stage_type == 'TTT':
+            for rank in range(n_starters):
+                if rank > 0 and pd.isna(raw_data['Rank'][rank]):  # 说明这个选手可能是和上一名选手同名次；注意NaN的布尔值是True
+                    if raw_data['IRM'][rank] not in ('DNF', 'DNS', 'DSQ', 'OTL'):  # 还需要判断是否为正常完赛
+                        raw_data.loc.__setitem__((rank, 'Rank'), 0)    # 若完赛的车手出现排名数据缺失，则标记为0（表明信息缺失），不检查队伍情况
+                """UCI上TTT的数据质量非常差，如果需要的话，考虑从赛事官网直接获取数据"""
+
+        new_data_dict = {}
         # To combine the first name and last name
         if 'Full Name' not in header_list:
             last_names = list(raw_data['Last Name'])
@@ -114,73 +192,6 @@ class DataTidier(object):
         else:
             full_names = raw_data['Full Name']
 
-        # 3.
-        # To get the actual number of participating cyclists (number of starters of the current competition,
-        # including DNS, DNF and DSQ cyclists), and to add date information to records of non-finishers.
-        n_starters = len(raw_data['Age'])
-
-        # 4.
-        # 检查是否每一行都填写了排名和队伍数据，按行遍历
-        # 注意pandas读取时已经自动识别表头行，行号计数从数据行开始
-        stage_type = os.path.splitext(os.path.split(source_path)[1])[0].split('_')[4]
-        for rank in range(n_starters):
-            if rank > 0 and pd.isna(raw_data['Rank'][rank]):  # 说明这个选手可能是和上一名选手同名次；注意NaN的布尔值是True
-                if raw_data['IRM'][rank] not in ['DNF', 'DNS', 'DSQ']:  # 还需要判断是否为正常完赛
-                    if stage_type != 'TTT':
-                        raw_data.loc.__setitem__((rank, 'Rank'), raw_data['Rank'][rank - 1])
-                        if pd.isna(raw_data['Team'][rank]):
-                            raw_data.loc.__setitem__((rank, 'Team'), raw_data['Team'][rank - 1])
-                    else:  # 对于TTT赛段，若完赛的车手出现排名数据缺失，则标记为0（表明信息缺失），不检查队伍情况
-                        raw_data.loc.__setitem__((rank, 'Rank'), 0)
-                """UCI上TTT的数据质量非常差，如果需要的话，考虑从赛事官网直接获取数据"""
-
-        # 5.
-        # 计算相对排名
-        # 关于DSQ车手：虽然这部分人最终成绩被取消，但是他们的成绩会被用作排名
-        # 比如一个DSQ的人排第100位然后成绩被取消，那么第100位的人就会空缺，不会向前候补
-        # 为避免出现相对排名>1的情况，目前的排名计算是把DSQ的人也算在基数里
-        if not pd.isna(raw_data['Rank'][0]):
-            n_finishers = int(max(raw_data['Rank']))
-            rank_norm_finishers = raw_data['Rank'] / n_finishers  # nan除以实数结果还是nan，不会报错
-        else:
-            rank_norm_finishers = raw_data['Rank']
-        new_data_dict['Rank_Norm'] = rank_norm_finishers
-
-        # 6.
-        # 计算相对完成时差
-        time_winner = raw_data['Result'][0]
-        time_winner_sec = basics.time2sec(time_winner)
-        if not time_winner_sec:  # 如果无人完赛，则time2sec返回none；只要有人完赛，返回值布尔值即为True
-            lags_norm = raw_data['Result']
-        else:
-            lags = raw_data['Result'][1:]
-            lags_sec = [0]
-            for lag in lags:
-                if not pd.isna(lag) and '+' in str(lag):  # 结果中有“+”号，直接判定是完成时差
-                    lag_sec = basics.time2sec(lag)
-                elif not pd.isna(lag):  # 结果中无”+“号，需要分情况讨论，如果大于冠军时间则说明是完整时长
-                    lag_sec = basics.time2sec(str(lag))
-                    lag_sec = (lag_sec - time_winner_sec) if lag_sec >= time_winner_sec else lag_sec
-                else:
-                    lag_sec = lag  # 对应DNF或者DNS，成绩为nan，直接复制。注意：DSQ的车手是有时间成绩的，只是没有排名成绩
-                lags_sec.append(lag_sec)
-            lags_norm = [lag / time_winner_sec * 100 for lag in lags_sec]
-        new_data_dict['Time Lag_Norm'] = lags_norm
-
-        # 7.
-        # 提取比赛信息，加入到数据当中
-        # dict存储的是提取的全部信息，按照self.game_info返回的次序编号；list存储的是想要添加到文件中的信息
-        info_headers_dict = {'Race ID': 0, 'Date': 1, 'Race': 2, 'Stage': 3, 'Result Type': 4, 'Stage Type': 5}
-        target_info_headers_list = ['Race ID', 'Date', 'Result Type', 'Stage Type']
-        for header in target_info_headers_list:
-            if header not in header_list:  # 一旦发现缺一项，就全部重新添加
-                info = self.game_info(source_path)
-                info_lists = [[info[info_headers_dict[field]]]*n_starters for field in target_info_headers_list]
-                new_data_dict.update([(info_header, info_list)
-                                      for info_header, info_list in zip(target_info_headers_list, info_lists)])
-                break
-
-        # 8.
         # 加入车手ID
         ids_list = []
         order = 0
@@ -191,19 +202,105 @@ class DataTidier(object):
                 key = '@'.join([name, country])
                 cyclist_id = cyclists_dict[key]
             except IndexError:  # raw_data的Country列比Full Name列短（有的车手缺失信息）
-                print("  Warning: No country information for {}".format(name))
+                fw_warning_log.write("    Warning: No country information for {}\n".format(name))
             except KeyError:  # cyclists_dict中找不到这名车手
-                print("  Warning: Can't find {} in the cyclists list".format(name))
+                fw_warning_log.write("    Warning: Can't find {} in the cyclists list\n".format(name))
             finally:
                 ids_list.append(cyclist_id)
                 order += 1
         new_data_dict.update({'Cyclist ID': ids_list})
 
+        # 计算相对排名（以名义完赛人数为基数）
+        # 关于DSQ车手：虽然这部分人最终成绩被取消，但是他们的成绩会被用作排名
+        # 比如一个DSQ的人排第100位然后成绩被取消，那么第100位的人就会空缺，不会向前候补
+        # 为避免出现相对排名>1的情况，目前的排名计算是把DSQ的人也算在基数里
+        if not pd.isna(raw_data['Rank'][0]):
+            n_nominal_finishers = int(max(raw_data['Rank']))
+            rank_norm_finishers = raw_data['Rank'] / n_nominal_finishers  # nan除以实数结果还是nan，不会报错
+        else:
+            rank_norm_finishers = raw_data['Rank']
+        new_data_dict['Rank_Norm'] = rank_norm_finishers
+
+        # Get the length of the current race for calculating speed
+        race_id = info[info_headers_dict['Race ID']]
+        row_index = races_dict.get(race_id)
+        if row_index is None:
+            race_length = np.nan
+            fw_warning_log.write("    Warning: Race {} is not in the list.\n".format(race_id))
+        else:
+            race_length = float(races_list['Length'][row_index])
+
+        # 计算总完成时间、相对完成时差、平均速度、与冠军的平均速度之比、与中位数平均速度之比
+        lags = raw_data['Result'][1:]
+        lags_sec = [0]
+        for lag in lags:
+            if not pd.isna(lag) and '+' in str(lag):  # 结果中有“+”号，直接判定是完成时差
+                lag_sec = basics.time2sec(lag)
+            elif not pd.isna(lag):  # 结果中无”+“号，需要分情况讨论，如果大于等于冠军时间则说明是完整时长
+                lag_sec = basics.time2sec(str(lag))
+                lag_sec = (lag_sec - time_winner_sec) if lag_sec >= time_winner_sec else lag_sec
+            else:
+                lag_sec = lag  # 对应DNF或者DNS，成绩为nan，直接复制。注意：有时OTL和DSQ的车手是有时间成绩的，只是没有排名成绩
+            lags_sec.append(lag_sec)
+        total_time_sec = [lag + time_winner_sec for lag in lags_sec]
+        lags_norm = [lag / time_winner_sec * 100 for lag in lags_sec]
+        avgs_kph = [race_length / ind_sec * 3600 for ind_sec in total_time_sec]
+        avgs_rel_to_winner = [time_winner_sec / ind_sec for ind_sec in total_time_sec]
+        # 计算中位数时不会自动跳过na，所以要取前面的有效成绩行
+        n_actual_finishers = raw_data['Rank'].count()
+        median_avg = np.median(avgs_kph[:n_actual_finishers])
+        avgs_rel_to_median = [avg_kph / median_avg for avg_kph in avgs_kph]
+        new_data_dict.update({
+            'Total Time': total_time_sec,
+            'Time Lag_Norm': lags_norm,
+            'Avg Speed (kph)': avgs_kph,
+            'Avg Speed Rel to Winner': avgs_rel_to_winner,
+            'Avg Speed Rel to Median': avgs_rel_to_median
+        })
+
+        if add_race_info and row_index is not None:
+            if (not races_list['Is Multi-Stage'][row_index]) \
+                    or (races_list['Is A Stage'][row_index] and info[info_headers_dict['Result Type']] == 'SC') \
+                    or info[info_headers_dict['Result Type']] == 'GC':
+                races_list.loc.__setitem__((row_index, 'Winner Avg Speed'), avgs_kph[0])
+                races_list.loc.__setitem__((row_index, 'Median Avg Speed'), median_avg)
+                basics.write_csv_bom(races_list, os.path.join(self.root, r"MetaData\races_list.csv"))
+
+        # 提取比赛信息，加入到数据当中
+        # dict存储的是提取的全部信息，按照self.game_info返回的次序编号；list存储的是想要添加到文件中的信息
+        target_info_headers_list = ['Race ID', 'Date', 'Stage Type', 'Result Type']
+        for header in target_info_headers_list:
+            if header not in header_list:  # 一旦发现缺一项，就全部重新添加
+                info_lists = [[info[info_headers_dict[field]]]*n_starters for field in target_info_headers_list]
+                new_data_dict.update([(info_header, info_list)
+                                      for info_header, info_list in zip(target_info_headers_list, info_lists)])
+                break
+
         # 把所有数据合并成dataframe并全部重写入文件, 要求每一列的长度相同
         new_data = pd.DataFrame(dict(dict(raw_data), **new_data_dict))
         basics.write_csv_bom(new_data, source_path)
 
-        return
+        # 改变原有的命名方式
+        if rename:
+            new_file_name = '_'.join([
+                race_id, info[info_headers_dict['Stage Type']], info[info_headers_dict['Result Type']]
+            ]) + '.csv'
+            new_file_path = os.path.join(os.path.split(source_path)[0], new_file_name)
+            try:
+                os.rename(source_path, new_file_path)
+            except FileExistsError:
+                os.remove(new_file_path)
+                os.rename(source_path, new_file_path)
+        else:
+            new_file_name = os.path.split(source_path)[1]
+
+        # 创建每个车手的.json文件
+        if write_record_dict:
+            create_records = cyclists_list.CreateCyclistRecords()
+            for row in new_data.iterrows():
+                create_records.add_record(row[1], result_type=info[info_headers_dict['Result Type']], **kwargs)
+
+        return new_file_name, fw_warning_log
 
     def game_info(self, file):
         """
@@ -250,42 +347,6 @@ class DataTidier(object):
                 fw.close()
             fr.close()
         return copy_path
-
-    # # 积分写入功能暂时未启用，代码不完善
-    # def add_point_dict(self, race, year, stage, point_scale):
-    #     """
-    #     将特定年份、特定比赛的UCI积分规则写入；只支持传入单一赛事、单一年份、单一赛段;
-    #     只实现计时排名积分奖励的写入，爬坡积分、冲刺积分榜的积分奖励暂定手动写入
-    #
-    #     :param point_scale: list, 若需要添加多赛事/多年份需要额外写循环
-    #     :param race, year, stage: 包含赛事、年份以及赛段序号
-    #     """
-    #
-    #     # 先判断是否已在字典中，若已在则跳过添加
-    #     if race not in self.point_dict.keys() or year not in self.point_dict[race].keys() \
-    #             or stage not in self.point_dict[race][year].keys():
-    #         self.point_dict[race] = {year: {stage: point_scale}}
-    #     return
-    #
-    # def write_point_dict(self, race, year, stage):
-    #     # 规定stage用缩写S+数字（赛段）或FC（Final Classification，总成绩）表示
-    #     try:
-    #         current_point_scale = self.point_dict[race][year][stage]
-    #         current_dir = os.path.join(self.root, race, year)
-    #         if stage == 'FC':
-    #             stage_abbr = 'FC_GC'
-    #         else:
-    #             stage_abbr = stage + '_SC'
-    #         for root, dirs, files in os.walk(current_dir):
-    #             for file in files:
-    #                 if stage_abbr in file:
-    #                     fr = pd.read_csv(file)
-    #                     new_data = pd.DataFrame({'BIB': fr['BIB'], 'Points': current_point_scale})  # DataFrame按列插入
-    #                     new_file = fr.merge(new_data, how='outer')
-    #                     basics.write_csv_bom(new_file, file)
-    #     except KeyError:
-    #         print('The point scale information has not been added.')
-    #     return
 
     @staticmethod
     def _create_race_id(date, race_abbr, stage, align=2):

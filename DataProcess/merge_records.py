@@ -270,9 +270,7 @@ class GenerateMetaByCyclistSplitBySeason(MergeByCyclistSplitBySeason):
                               "        The last one: {}".format(last_write, row[1]['Full Name']))
                         print("        Time cost of last write cycle: {}s".format(time.clock() - cycle_start))
                         cycle_start = time.clock()
+                basics.write_csv_bom(write_data, write_path)
                 print("---------- Meta-data generated for {}. Time cost: {} ----------\n"
                       .format(item, time.clock() - start))
         return
-
-    # TODO: 将赛段加入列时，没有考虑到FC成绩里有时候会存在Sprint Classification，也会被缩写为SC加入到列表中造成一些干扰
-    # TODO: 时间差似乎不是一个好的变量，因为它不是定比变量，只是一个定距变量；用完成时相对于冠军的比值可能更好（本质上是平均速度之比）

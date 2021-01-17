@@ -101,7 +101,7 @@ def time2sec(time):
     :raise TypeError: A TypeError occurs when the variable type of the parameter is none of NaN, int, float or string.
     """
     if pd.isna(time):
-        return
+        return np.nan
     # 需要按秒、分、时的顺序提取出时间并转为整型，但是源文件中有两种时间格式:
     # 第一种是冒号分隔（大多数）
     # 第二种是单双引号分隔（少数，如部分TTT中）

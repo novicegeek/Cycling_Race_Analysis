@@ -9,61 +9,59 @@ import global_vars
 import log
 
 
+ROOT = global_vars.get_value('ROOT')
 ENCODING = global_vars.get_value('ENCODING')
 
 
 class FormatConverter(object):
     """For file format conversion. Currently only conversion from .xlsx to .csv is supported."""
 
-    def __init__(self, root):
+    def __init__(self, root=None):
         """
         :param root: Set the root directory in which the conversion will be performed.
         """
-        self.root = root
+        self.root = ROOT if not root else root
         return
 
-    def convert_xlsx2csv(self, race_range=None, year_range=None):
+    def convert_xlsx2csv(self, races='all', seasons='all', ignore_log=False):
         """
         Convert .xlsx raw data files into .csv ones.
 
-        :param race_range: Can be a LIST of race names the file of which will be converted;
-            by default, ALL files will be converted.
-        :param year_range: The same rule as above.
+        :param races: Can be 'all' (default), 'Grand Tour', 'multi', 'single', the full name of a single race,
+            or a list of full names of races.
+        :param seasons: Can be 'all' (default, from 2009 to 2019), a single season of int or str type,
+            or a list of seasons each of int or str type.
+        :param ignore_log: Boolean. If True, the file will be converted regardless of its record in the log.
         """
         source_dir = self.root + r'\Raw'
         convert_dir = self.root + r'\Converted_Raw'
 
         path_convert_log = os.path.join(source_dir, 'convert_log.txt')
         convert_log = log.auto_read_log(path_convert_log)
+        path_tidy_log = os.path.join(convert_dir, 'tidy_log.txt')
+        tidy_log = log.auto_read_log(path_tidy_log)
 
-        if not race_range:
-            race_range = []
-            for race_dir in os.listdir(source_dir):
-                if os.path.isdir(os.path.join(source_dir, race_dir)):
-                    race_range.append(race_dir)
-        race_dirs = [os.path.join(source_dir, race_dir) for race_dir in race_range]
-        file_list = []
-        if not year_range:
-            for race_dir in race_dirs:
-                file_list += basics.get_file_list(race_dir, extension='.xlsx')
-        else:
-            for race_dir in race_dirs:
-                for year in year_range:
-                    year_dir = os.path.join(race_dir, year)
-                    file_list += basics.get_file_list(year_dir, extension='.xlsx')
-
+        races = basics.get_races_list(races)
+        seasons = basics.get_seasons_list(seasons)
         last_write = 0
-        for file in file_list:
-            file_name_convert = os.path.split(file)[1]
-            if file_name_convert not in convert_log.keys():
-                result_path_xlsx = file.replace('Raw', 'Converted_Raw')
-                self.xlsx2csv(file, converted_file_path=result_path_xlsx)
-                convert_log[file_name_convert] = 'Y'
-                last_write += 1
-            if not last_write % 20:  # 每转换20个文件写入一次日志
-                log.auto_write_log(convert_log, path_convert_log)
+        for race in races:
+            for season in seasons:
+                cur_dir = os.path.join(source_dir, race, season)
+                for file_name in os.listdir(cur_dir):
+                    if os.path.splitext(file_name)[1] == '.xlsx':
+                        source_path = os.path.join(cur_dir, file_name)
+                        if ignore_log or (file_name not in convert_log.keys()):
+                            result_path_xlsx = source_path.replace('Raw', 'Converted_Raw')
+                            self.xlsx2csv(source_path, converted_file_path=result_path_xlsx)
+                            convert_log[file_name] = 'Y'
+                            tidy_log[file_name] = 'N'
+                            last_write += 1
+                        if not last_write % 20:  # 每转换20个文件写入一次日志
+                            log.auto_write_log(convert_log, path_convert_log)
+                            log.auto_write_log(tidy_log, path_tidy_log)
 
         log.auto_write_log(convert_log, path_convert_log)
+        log.auto_write_log(tidy_log, path_tidy_log)
         return convert_dir
 
     @staticmethod

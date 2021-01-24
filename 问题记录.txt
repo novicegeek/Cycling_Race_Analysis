@@ -7,7 +7,7 @@
 
 
 ## Raw文件信息缺失（仅SC、SGC和GC）：
-    # 注意：在excel中不带+输入成绩时，前面也要加上'，否则读取出来会变成datetime.time类而不是str
+    # 注意：在excel中不带+输入成绩时，前面也要加上'，否则读取出来会变成datetime.time类而不是str；但是没有手动改动过的文件没有此限制，用excel打开是datetime但是pd读取为正常的字符串
 
     # 已解决：
     # （√）车手名单缺失：部分比赛最后的GC名单并不包含未完赛车手，导致部分车手漏添加到cyclists list中，tidy时会发现找不到这些车手。Converted_Raw\tidy_warning_log.txt以及add_missing_log.txt
@@ -66,6 +66,10 @@
 
 ## GC名单不完整（Convert完了之后要注意有涉及到的重新add missing list）：
     # 2017-2019赛季所有的多日赛（3+4=7）
+
+
+## 赛段信息有误
+    # Paris-Nice 2011年第4？赛段，200+公里缩减到155公里
 
 
 

@@ -24,13 +24,14 @@ import json
 import os
 import numpy as np
 import pandas as pd
-import pandas.core.series
 import global_vars
 import basics
 
 
 ENCODING = global_vars.get_value('ENCODING')
+HALF_RECORD = global_vars.get_value('HALF-RECORD')
 MULTI_STAGES = global_vars.get_value('MULTI-STAGES')
+NO_RECORD = global_vars.get_value('NO-RECORD')
 ROOT = global_vars.get_value('ROOT')
 with open(os.path.join(ROOT, r"Codes\DataAcquire\competition_codes.json"), 'r', encoding='utf-8') as fr:
     RACE_CODES = json.load(fr)
@@ -45,10 +46,15 @@ class RacesList(object):
         self.source_dir = os.path.join(ROOT, r"MetaData\races_meta_data")
         self.races_list_path = os.path.join(ROOT, r"MetaData\races_list.csv")
 
-    def create_list(self, races=('Tour de France', "Giro d'Italia", 'Vuelta a España')):
+    def create_list(self,
+                    races='all',
+                    seasons='all',
+                    overwrite=False):
         """Create races list.
 
         :param races: What races to take into account. By default only Grand Tours.
+        :param seasons: What seasons to take into account. By default 'all', including all seasons in the meta files.
+        :param overwrite: Boolean. Whether to overwrite the race if it already exists in the list.
         """
         try:
             with open(self.races_list_path, 'r', encoding=ENCODING) as fr:
@@ -60,23 +66,33 @@ class RacesList(object):
             cur_list = pd.DataFrame()
             cur_list_ids_dict = {}
 
+        races = basics.get_races_list(races)
+        seasons = basics.get_seasons_list(seasons)
+
         for race in races:
-            workbook = pd.read_excel(os.path.join(self.source_dir, race),  # Gets a dict
+            workbook = pd.read_excel(os.path.join(self.source_dir, race + '.xlsx'),  # Gets a dict
                                      sheet_name=None, encoding=ENCODING)
             is_multi_stage = 1 if race in MULTI_STAGES else 0
+            race_abbr = RACE_CODES[race]
             race_meta_df = pd.DataFrame()
             for year, cur_sheet in workbook.items():  # year is the sheet name; cur_sheet is a dataframe
+                if year not in seasons:
+                    continue
                 print("---------- Examining {} {} ----------".format(race, year))
-                has_prologue = 1 if cur_sheet['NUM'][0] == 'P' else 0
                 actual_stage_count = 0
+                last_stage = np.nan
+                has_prologue = 1 if cur_sheet['NUM'][0] == 'P' else 0
+                total_length = 0
                 for cur_row in cur_sheet.iterrows():
                     if not pd.isna(cur_row[1]['NUM']):  # This is stage information
                         stage_num = cur_row[1]['NUM']
                         print("    ------ Examining stage {} ------".format(stage_num))
                         stage_meta_df = pd.DataFrame({
-                            'ID': self._create_id(race, year, cur_row[1]),
+                            'ID': basics.create_race_id(race_abbr, year, is_multi_stage,
+                                                        from_race_meta=True, stage=cur_row[1]['NUM']),
                             'Nominal Stage Number': int(float(stage_num)) if self._is_int(stage_num) else stage_num,
                             'Actual Stage Number': self._get_actual_stage_number(has_prologue, cur_row[1]),
+                            'Last Stage': last_stage,
                             'Race': race,
                             'Year': year,
                             'Is Multi-Stage': is_multi_stage,
@@ -85,14 +101,24 @@ class RacesList(object):
                             'Date': self._get_date(cur_row[1], source='La FlammeRouge'),
                             'Depart': cur_row[1]['DEPART AND ARRIVE'].split('>')[0].strip(),
                             'Arrive': cur_row[1]['DEPART AND ARRIVE'].split('>')[1].strip(),
-                            'Length': cur_row[1]['LENGTH'].split('Km')[0].strip(),  # To keep 2 decimal digits
+                            'Length': cur_row[1]['LENGTH'],
                             'Type': self._get_stage_type(cur_row[1]),
                             'Profile': cur_row[1]['TYPE']  # For now, the profile of a time trial is not clear.
                         }, index=[0])
-                        if len(cur_list) == 0 or cur_list_ids_dict.get(stage_meta_df['ID'][0]) is None:
+                        last_stage = stage_meta_df['ID'][0]
+                        total_length += cur_row[1]['LENGTH']
+                        if cur_list_ids_dict.get(stage_meta_df['ID'][0]) is None:
                             cur_list = pd.concat([cur_list, stage_meta_df], ignore_index=True, sort=False)
                             cur_list_ids_dict.update([(stage_meta_df['ID'][0], len(cur_list_ids_dict))])
                             print("        -- Stage {} of {} {} newly appended --"
+                                  .format(stage_num, race, year))
+                        elif overwrite:
+                            stage_row_index = cur_list_ids_dict[stage_meta_df['ID'][0]]
+                            for col in stage_meta_df.columns:
+                                cur_list.loc.__setitem__((stage_row_index, col), stage_meta_df[col][0])
+                            cur_list.loc.__setitem__((stage_row_index, 'Winner Avg Speed'), np.nan)
+                            cur_list.loc.__setitem__((stage_row_index, 'Median Avg Speed'), np.nan)
+                            print("        -- Stage {} of {} {} overwritten --"
                                   .format(stage_num, race, year))
                         else:
                             print("        -- Stage {} of {} {} already exists --"
@@ -102,11 +128,11 @@ class RacesList(object):
                         key = cur_row[1]['TYPE']  # Now the titles are indices (like a transposition)
                         value = cur_row[1]['LENGTH']
                         if key == 'Total distance':
-                            value = value.split('Km')[0].strip()
+                            if abs(value - total_length) > TOLERANCE:
+                                print("        -- Total length differs from the sum of individual lengths --")
                             race_meta_df.loc.__setitem__((0, key), value)
                             race_meta_df.loc.__setitem__((0, 'Total stages'), actual_stage_count)
-                            race_meta_df.loc.__setitem__((0, 'Average distance'),
-                                                         str(round(float(value)/actual_stage_count, 2)))
+                            race_meta_df.loc.__setitem__((0, 'Average distance'), value / actual_stage_count)
                         else:
                             if self._is_int(value):
                                 value = int(value)
@@ -115,49 +141,42 @@ class RacesList(object):
                         pass
                 if is_multi_stage:
                     race_meta_df = pd.DataFrame(dict(dict(race_meta_df), **{
-                        'ID': self._create_id(race, year),
+                        'ID': basics.create_race_id(race_abbr, year, is_multi_stage,
+                                                    from_race_meta=True, stage=np.nan),
+                        'Last Stage': last_stage,
                         'Race': race,
                         'Year': year,
                         'Is Multi-Stage': is_multi_stage,
                         'Has Prologue': has_prologue,
-                        'Is A Stage': False,
+                        'Is A Stage': 0,
                         'Length': race_meta_df.loc.__getitem__((0, 'Total distance')),
                         'Type': 'OVR'
                     }))
-                    if len(cur_list) == 0 or cur_list_ids_dict.get(race_meta_df['ID'][0]) is None:
+                    if cur_list_ids_dict.get(race_meta_df['ID'][0]) is None:
                         cur_list = pd.concat([cur_list, race_meta_df], ignore_index=True, sort=False)
                         cur_list_ids_dict.update([(race_meta_df['ID'][0], len(cur_list_ids_dict))])
                         print("    ------ {} {} newly appended ------".format(race, year))
+                    elif overwrite:
+                        race_row_index = cur_list_ids_dict[race_meta_df['ID'][0]]
+                        for col in race_meta_df.columns:
+                            cur_list.loc.__setitem__((race_row_index, col), race_meta_df[col][0])
+                        cur_list.loc.__setitem__((race_row_index, 'Winner Avg Speed'), np.nan)
+                        cur_list.loc.__setitem__((race_row_index, 'Median Avg Speed'), np.nan)
+                        print("        -- {} {} overwritten --".format(race, year))
                     else:
                         print("    ------ {} {} already exists ------".format(race, year))
-                    basics.write_csv_bom(cur_list, self.races_list_path)
+                basics.write_csv_bom(cur_list, self.races_list_path)
+
+        for row in cur_list.iterrows():
+            if row[1]['ID'] not in HALF_RECORD + NO_RECORD:
+                has_records = 1
+            elif row[1]['ID'] in NO_RECORD:
+                has_records = 0
+            else:
+                has_records = 0.5
+            cur_list.loc.__setitem__((row[0], 'Has Records'), has_records)
+        basics.write_csv_bom(cur_list, self.races_list_path)
         return
-
-    @staticmethod
-    def _create_id(race, year, row_data=None, align=2):
-        """
-        Create ID for a stage/race, using the NOMINAL stage number.
-
-        Format: abbr_year_code (for a whole race, the last part is set to 'R01', meaning 'Race No.1').
-
-        :param race: The full name of the race.
-        :param year: The current year that's being examined.
-        :param row_data: The data row being examined.
-            When not input it is for the whole race, otherwise for a single stage.
-        :param align: The total number of characters for numbering the stage/race.
-            By default 2, i.e., stage No.2 will be represented by 02.
-            Prologue stick to the same rule, i.e., 0P.
-        """
-        race_code = RACE_CODES[race]  # Get the abbr code from the full name.
-        if type(row_data) == pandas.core.series.Series:
-            try:
-                number = str(int(row_data['NUM']))  # This is a normal stage if no error
-                code = 'S' + '0' * (align - len(number)) + number
-            except ValueError:  # This is a Prologue stage
-                code = 'P01'
-        else:  # This is the overall race, not a single stage
-            code = 'R01'
-        return race_code + str(year) + code
 
     @staticmethod
     def _get_actual_stage_number(has_prologue, row_data):

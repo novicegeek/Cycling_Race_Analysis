@@ -20,6 +20,7 @@ class RawChecker(object):
         self.types_set = {'SC', 'SGC', 'GC'}
 
     def check_raw(self):
+        """To check the raw data and shoot out problems."""
         check_count, log_count = 0, 1
         # Create an output log handle
         check_raw_log_path = os.path.join(self.raw_dir, r"check_raw_log_1.txt")

@@ -26,13 +26,14 @@ if __name__ == '__main__':
     # cl.create_list(global_vars.get_value('SINGLE-STAGE'))
 
     # rl = races_list.RacesList()
-    # rl.create_list(races_list.MULTI_STAGES)
+    # rl.create_list(races='all', seasons='all', overwrite=False)
 
     # add_cyclists = cyclists_list.AddMissingCyclists()
     # add_cyclists.add_cyclists_to_raw(races='single')
 
-    tidy = gen_var.DataTidier()
-    tidy.tidy_all(types=['SC', 'GC'])
+    # tidy = gen_var.DataTidier()
+    # tidy.tidy_all(races='single', seasons='all', types=['SC', 'GC'],
+    #               ignore_log=True, write_record_dict=False, prior_check=False)
 
     # extract = gen_var.DataExtracter()
     # extract.extract_all(races='all')
@@ -46,7 +47,6 @@ if __name__ == '__main__':
     # var_gen = gen_var.VarGenerator()
     # var_gen.gen_vars_all(race_range=['Tour de France', 'Vuelta a España'])
 
-    pass
 
 # TODO: 将赛段加入列时，没有考虑到FC成绩里有时候会存在Sprint Classification，也会被缩写为SC加入到列表中造成一些干扰
 # TODO: 时间差似乎不是一个好的变量，因为它不是定比变量，只是一个定距变量；用完成时相对于冠军的比值可能更好（本质上是平均速度之比）

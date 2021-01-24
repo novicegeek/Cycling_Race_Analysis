@@ -25,7 +25,8 @@ class DataTidier(object):
         self.point_dict = {}
         return
 
-    def tidy_all(self, types=('SC', 'GC', 'SGC'), ignore_log=False, include_ttt=False, **kwargs):
+    def tidy_all(self, races, seasons,
+                 types=('SC', 'GC', 'SGC'), ignore_log=False, include_ttt=False, **kwargs):
         """
         Adapter method for tidying all data files.
 
@@ -37,6 +38,8 @@ class DataTidier(object):
         # Warning: This method operates IN-PLACE, which means the tidied file will cover the original copied,
         none-tidied file in the same directory.
 
+        :param races:
+        :param seasons:
         :param types: By default, only the data files of Stage Classification, General Classification
             or Stage General Classification will be tidied.
         :param ignore_log: Boolean. If True, the file will be converted regardless of its record in the log.
@@ -45,62 +48,63 @@ class DataTidier(object):
         """
         source_dir = os.path.join(self.root, 'Converted_Raw')
         tidy_dir = os.path.join(self.root, 'Converted_Tidied')
+
+        path_tidy_log = os.path.join(source_dir, 'tidy_log.txt')
+        tidy_log = log.auto_read_log(path_tidy_log)
+        path_tidy_warning_log = os.path.join(source_dir, 'tidy_warning_log.txt')
+        fw_warning = open(path_tidy_warning_log, 'w', encoding=ENCODING)
+
         races_list_path = os.path.join(self.root, r"MetaData\races_list.csv")
         with open(races_list_path, 'r', encoding=ENCODING) as fr:
             races_list = pd.read_csv(fr)
             fr.close()
         races_dict = dict([(row[1]['ID'], row[0]) for row in races_list.iterrows()])
 
-        # 对所有文件执行tidy
-        file_list = basics.get_file_list(source_dir, extension='.csv')
+        cyc_list_path = os.path.join(self.root, r"MetaData\cyclists_list.csv")
+        with open(cyc_list_path, 'r', encoding=ENCODING) as fr:
+            cyc_list = pd.read_csv(fr)
+            fr.close()
+        cyclists_dict = dict([
+                ('@'.join(list(row[1][['Full Name', 'Country']])), row[1]['ID']) for row in cyc_list.iterrows()
+        ])  # Hash cur_list to accelerate matching. Dict structure: {Full Name@Country: ID}.
 
-        path_tidy_log = os.path.join(source_dir, 'tidy_log.txt')
-        tidy_log = log.auto_read_log(path_tidy_log)
+        races = basics.get_races_list(races)
+        seasons = basics.get_seasons_list(seasons)
+        last_write = 0
 
-        path_tidy_warning_log = os.path.join(source_dir, 'tidy_warning_log.txt')
-        fw_warning = open(path_tidy_warning_log, 'w', encoding=ENCODING)
-
-        cyc_list = pd.read_csv(ROOT + r'\MetaData\cyclists_list.csv', encoding=ENCODING)
-        cyclists_dict = dict(
-            [
-                (
-                    '@'.join(list(row[1][['Full Name', 'Country']])), row[1]['ID']
-                )
-                for row in cyc_list.iterrows()
-            ]
-        )  # Hash cur_list to accelerate matching. Dict structure: {Full Name@Country: ID}.
-
-        try:
-            last_write = 0
-            for file in file_list:
-                file_name = os.path.split(file)[1]
-                stage, result_type, stage_type = re.split('[._]', file_name)[2:5]
-                if stage == 'FC' and result_type == 'SC':  # 注意FC情况的判断比较特殊，要考虑FC_SC这种混淆情况
-                    continue
-                elif not include_ttt and stage_type == 'TTT':
-                    continue
-                elif result_type in types and \
-                        (ignore_log or file_name not in tidy_log.keys() or tidy_log[file_name] == 'N'):
-                    copy_file_path = self.file_copy(file)
-                    # Only operates on copy of the raw file
-                    new_file_name, fw_warning = self.csv_tidy(
-                        copy_file_path, cyclists_dict, races_list, races_dict, fw_warning, **kwargs
-                    )
-                    if new_file_name is not None:
-                        tidy_log[file_name] = new_file_name  # 因为文件名可能更改，为了找到对应就把value设置成新的文件名
-                        last_write += 1
-                    else:  # 返回None说明出错，需要跳过这一个文件，并且把已经复制的文件删除
-                        os.remove(copy_file_path)
+        for race in races:
+            for season in seasons:
+                cur_dir = os.path.join(source_dir, race, season)
+                for file_name in os.listdir(cur_dir):
+                    file_path = os.path.join(cur_dir, file_name)
+                    stage, result_type, stage_type = re.split('[._]', file_name)[2:5]
+                    if stage == 'FC' and result_type == 'SC':  # 注意FC情况的判断比较特殊，要考虑FC_SC这种混淆情况
                         continue
-                if not last_write % 20:
-                    log.auto_write_log(tidy_log, path_tidy_log)
-        finally:
-            log.auto_write_log(tidy_log, path_tidy_log)
-            fw_warning.close()
+                    elif not include_ttt and stage_type == 'TTT':
+                        continue
+                    elif result_type in types and \
+                            (ignore_log or file_name not in tidy_log.keys() or tidy_log[file_name] == 'N'):
+                        copy_file_path = self.file_copy(file_path)
+                        is_multi_stage = True if race in global_vars.get_value('MULTI-STAGES') else False
+                        # Only operates on copy of the raw file
+                        new_file_name, fw_warning = self.csv_tidy(
+                            copy_file_path, cyclists_dict, races_list, races_dict, is_multi_stage, fw_warning, **kwargs
+                        )
+                        if new_file_name is not None:
+                            tidy_log[file_name] = new_file_name  # 因为文件名可能更改，为了找到对应就把value设置成新的文件名
+                            last_write += 1
+                        else:  # 返回None说明出错，需要跳过这一个文件，并且把已经复制的文件删除
+                            os.remove(copy_file_path)
+                            continue
+                    if not last_write % 20:
+                        log.auto_write_log(tidy_log, path_tidy_log)
+
+        log.auto_write_log(tidy_log, path_tidy_log)
+        fw_warning.close()
 
         return tidy_dir
 
-    def csv_tidy(self, source_path, cyclists_dict, races_list, races_dict, fw_warning_log,
+    def csv_tidy(self, source_path, cyclists_dict, races_list, races_dict, is_multi_stage, fw_warning_log,
                  drop_list=('Phase', 'Heat'),
                  add_race_info=True, prior_check=True, rename=True, write_record_dict=True, **kwargs):
         """
@@ -114,6 +118,7 @@ class DataTidier(object):
             See also in cyclists_list.py.
         :param races_list: The meta-data file of races.
         :param races_dict: Dictionary storing the race information.
+        :param is_multi_stage: Boolean. Whether this is a multi-stage race.
         :param fw_warning_log: The TextIOWrapper of log for outputting warning information.
         :param drop_list: The titles of columns to be removed from the dataframe.
         :param add_race_info: Whether to add race information, including winner's average speed
@@ -170,7 +175,7 @@ class DataTidier(object):
 
         # Starters include DNS, DNF, DSQ and OTL cyclists
         n_starters = len(raw_data)
-        info = self.game_info(source_path)
+        info = self.game_info(source_path, is_multi_stage)
         info_headers_dict = {'Race ID': 0, 'Date': 1, 'Race': 2, 'Stage': 3, 'Result Type': 4, 'Stage Type': 5}
 
         # 对于TTT：检查是否每一行都填写了排名和队伍数据，按行遍历
@@ -192,10 +197,12 @@ class DataTidier(object):
         else:
             full_names = raw_data['Full Name']
 
-        # 加入车手ID
+        # 加入车手ID，并且顺便把未正常完赛（无rank）的人的时间成绩清空
         ids_list = []
         order = 0
         for name in full_names:
+            if pd.isna(raw_data['Rank'][order]) and pd.notna(raw_data['Result'][order]):
+                raw_data.loc.__setitem__((order, 'Result'), np.nan)
             cyclist_id = np.nan
             try:
                 country = raw_data['Country'][order]
@@ -247,8 +254,8 @@ class DataTidier(object):
         avgs_kph = [race_length / ind_sec * 3600 for ind_sec in total_time_sec]
         avgs_rel_to_winner = [time_winner_sec / ind_sec for ind_sec in total_time_sec]
         # 计算中位数时不会自动跳过na，所以要取前面的有效成绩行
-        n_actual_finishers = raw_data['Rank'].count()
-        median_avg = np.median(avgs_kph[:n_actual_finishers])
+        n_valid_finishers = raw_data['Rank'].count()
+        median_avg = np.median(avgs_kph[:n_valid_finishers])
         avgs_rel_to_median = [avg_kph / median_avg for avg_kph in avgs_kph]
         new_data_dict.update({
             'Total Time': total_time_sec,
@@ -262,6 +269,9 @@ class DataTidier(object):
             if (not races_list['Is Multi-Stage'][row_index]) \
                     or (races_list['Is A Stage'][row_index] and info[info_headers_dict['Result Type']] == 'SC') \
                     or info[info_headers_dict['Result Type']] == 'GC':
+                races_list.loc.__setitem__((row_index, 'Starters'), n_starters)
+                races_list.loc.__setitem__((row_index, 'Valid Finishers'), n_valid_finishers)
+                races_list.loc.__setitem__((row_index, 'Finishing Rate'), n_valid_finishers / n_starters)
                 races_list.loc.__setitem__((row_index, 'Winner Avg Speed'), avgs_kph[0])
                 races_list.loc.__setitem__((row_index, 'Median Avg Speed'), median_avg)
                 basics.write_csv_bom(races_list, os.path.join(self.root, r"MetaData\races_list.csv"))
@@ -302,16 +312,19 @@ class DataTidier(object):
 
         return new_file_name, fw_warning_log
 
-    def game_info(self, file):
+    @staticmethod
+    def game_info(file, is_multi_stage):
         """
         To extract game information from file name or file path.
 
         :param file: May be the COMPLETE PATH or NAME of the file.
+        :param is_multi_stage: Boolean.
         :return: List of information embedded in and created from the file name.
         """
         info = re.split('[_.]', os.path.split(file)[1])
         date, race, stage, result_type, stage_type = info[0:5]
-        race_id = self._create_race_id(date, race, stage)
+        race_id = basics.create_race_id(race, date[:4], is_multi_stage,
+                                        from_race_meta=False, stage=stage)
         return [race_id, date, race, stage, result_type, stage_type]
 
     @staticmethod

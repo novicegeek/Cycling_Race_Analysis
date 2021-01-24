@@ -1,0 +1,51 @@
+Tour de France：Webarchive网站（路线数据+赛事手册）
+
+Giro d'Italia：
+    2009、2010官网还能访问旧网址
+        （2009：http://www.gazzetta.it/Speciali/Giroditalia/2009/en/
+           2010：https://www.gazzetta.it/Speciali/Giroditalia/2010/it/tappe_elenco.shtml）
+    2011年开始在现在的官网上还能查到archive数据（http://archivio.giroditalia.it/eng/editions/2008-2017-2/）
+    最终2012、2013年用的也是archive
+
+Vuelta a españa：http://historia.lavuelta.com/es/anios.asp
+    2013以后取的是WebArchive里的数据，其中2018、2019年部分赛段用了YouTube上环西官方账号视频的数据（视频和Archive不一致，但是和其他网站较一致）
+    2009-2014年没有找到官方的profile信息
+
+Tour de Suisse：赛事官方提供的赛事诞生以来统计数据全集pdf文件，但是其中不含profile信息
+    后添加的2009-2011年除了time trial以外都没有profile信息，参考Wikipedia和下载的profile图（hub：http://www.steephill.tv/年份/tour-de-suisse/）
+    2012-2015和2019年Archive上也没有找到stage profile信息
+
+Paris-Nice：WebArchive（有一部分年份没有详细的profile信息）
+
+Critérium du Dauphiné：WebArchive
+    2009年参考维基百科引用单独赛段信息的pdf：https://en.wikipedia.org/wiki/2009_Crit%C3%A9rium_du_Dauphin%C3%A9_Lib%C3%A9r%C3%A9；Profile参考Wikipedia
+    2010年的profile参考Wikipedia和下载到的profile图，hub：http://www.steephill.tv/2010/criterium-du-dauphine-libere/
+
+Tirreno-Adriatico：
+    从2016年开始官网上有资料：https://www.tirrenoadriatico.it/en/albo-doro/，但没有profile信息
+    2011-2015年用Archive资料，但没有profile信息
+    2009、2010年未找到官方资料（但La FlammeRouge有），profile沿用La FlammeRouge
+
+Il Lombardia：WebArchive（2019年没有）
+
+Liège-Bastogne-Liège：WebArchive（2019年没有）
+    2009-2011年找不到任何关于profile的信息，参考后面的年份统一设置成medium
+
+Milano-Sanremo：
+    2009-2010年WebArchive没有相关信息，使用了Wikipedia的profile图（每年基本都一样）
+    2011年开始WebArchive能找到信息
+
+Paris-Roubaix：官网有https://www.paris-roubaix.fr/en/history，但没有profile信息
+    2012年开始La FlammeRouge能找到profile信息
+
+Ronde van Vlaanderen：WebArchive
+    2011年开始La FlammerRouge有profile信息
+    2009和2010年只能参考ProcyclingStats的估计值，并参考后面的年份设置成medium
+
+最终设定：
+1）核对procyclingstats、http://memoire-du-cyclisme.eu/和官网数据，有出入的再核对赛道profile图等，优先以官方为准；
+2）原先la flammerouge的里程用官方数据替代，profile类型保留；
+3）如果官方有profile类别信息，且和la flammerouge不一致，则与la flammerouge、procyclingstats、Wikipedia进行投票，官方结果算2票，其他各1票，以票数最多的结果为准
+4）对于不同数据源里程差异较大，且找不到确切原因的，保留官方网站的数据
+
+

@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # tidy = gen_var.DataTidier()
     # tidy.tidy_all(races='single', seasons='all', types=['SC', 'GC'],
-    #               ignore_log=True, write_record_dict=False, prior_check=False)
+    #               ignore_log=True, write_record_dict=True, prior_check=False)
 
     # extract = gen_var.DataExtracter()
     # extract.extract_all(races='all')
@@ -44,8 +44,13 @@ if __name__ == '__main__':
     # meta_gen = merge_records.GenerateMetaByCyclistSplitBySeason()
     # meta_gen.gen_meta(seasons=2019, in_place=False)
 
+    meta_gen = merge_records.GenerateCyclistMeta()
+    # meta_gen.gen_meta()
+    meta_gen.merge_meta()
+
     # var_gen = gen_var.VarGenerator()
     # var_gen.gen_vars_all(race_range=['Tour de France', 'Vuelta a España'])
+    pass
 
 
 # TODO: 将赛段加入列时，没有考虑到FC成绩里有时候会存在Sprint Classification，也会被缩写为SC加入到列表中造成一些干扰

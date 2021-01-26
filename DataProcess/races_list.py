@@ -213,10 +213,14 @@ class RacesList(object):
     def _get_stage_type(row_data):
         """Get the ABBREVIATION of the stage type."""
         stage_type = row_data['TYPE']
-        if 'Time Trial' in stage_type:
-            return ''.join([part[0].upper() for part in stage_type.split(' ')])
+        if type(stage_type) != str:
+            return np.nan
         else:
-            return 'IRR'
+            stage_type = stage_type.lower()
+            if 'time trial' in stage_type:
+                return ''.join([part[0].upper() for part in stage_type.split(' ')])
+            else:
+                return 'IRR'
 
     @staticmethod
     def _is_int(num):

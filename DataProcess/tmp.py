@@ -170,3 +170,4 @@ if __name__ == '__main__':
     # tmp_clear_invalid_cyclist_records()
     # tmp_clear_invalid_results()
     # tmp_convert_raw()
+    pass

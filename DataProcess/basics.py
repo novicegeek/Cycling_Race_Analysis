@@ -17,23 +17,23 @@ def create_race_id(race_abbr, year, is_multi_stage, from_race_meta, stage=None, 
     """
     Create ID for a stage/race, using the NOMINAL stage number.
 
-    Format: abbr_year_code (for a whole race, the last part is set to 'R01', meaning 'Race No.1').
+    Format: abbr+year+code (for a whole race, the last part is set to 'R01', meaning 'Race No.1';
+        a single-stage race will also be coded as 'R01').
 
     :param race_abbr: The full name of the race.
     :param year: The current year that's being examined.
     :param is_multi_stage: 1/0 or boolean.
     :param from_race_meta: 1/0 or boolean. Whether the stage information is from the race meta document,
         or from the results data file name.
-    :param stage: The stage code.
+    :param stage: The original stage code.
     :param align: The total number of characters for numbering the stage/race.
         By default 2, i.e., stage No.2 will be represented by 02.
-        Prologue stick to the same rule, i.e., 0P.
     """
     if stage is None:
         print("    Warning: No valid stage information.")
         return np.nan
     elif from_race_meta:
-        if not pd.isna(stage):
+        if is_multi_stage and not pd.isna(stage):
             try:
                 number = str(int(stage))  # A normal stage in a multi-stage race or a single-stage race
                 stage_code = 'S' + '0' * (align - len(number)) + number
@@ -45,8 +45,6 @@ def create_race_id(race_abbr, year, is_multi_stage, from_race_meta, stage=None, 
         if 'S' in stage:
             stage_number = stage.split('S')[1]
             stage_code = 'S' + '0' * (align - len(stage_number)) + stage_number
-        elif not is_multi_stage:
-            stage_code = 'S01'
         elif stage == 'FC':
             stage_code = 'R01'
         elif stage == 'P':

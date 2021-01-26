@@ -3,6 +3,7 @@
 
 
 import copy
+import json
 import os
 import time
 import numpy as np
@@ -63,7 +64,7 @@ class MergeByCyclistSplitBySeason(MergeRecords):
     def _merge_by_cyclist_split_by_season(self, season, races, result_types, include_ttt=False, option='create'):
         """Merge records for every individual cyclist, forming season-wise files.
 
-        NOTE: This method always write a new file, instead of appending records to an existing file.
+        By default, this method write a new file, instead of appending records to an existing file.
 
         :param season: A single year of str type.
         """
@@ -274,3 +275,210 @@ class GenerateMetaByCyclistSplitBySeason(MergeByCyclistSplitBySeason):
                 print("---------- Meta-data generated for {}. Time cost: {} ----------\n"
                       .format(item, time.clock() - start))
         return
+
+
+class MergeByCyclistPoolSeason(MergeRecords):
+    """Merge records for every individual cyclist, pooling the records from multiple seasons."""
+
+    def __init__(self):
+        super().__init__()
+        return
+
+    def create(self, races='all', seasons='all', result_types=('SC', 'GC'), include_ttt=False, meta_only=True):
+        """
+        NOTE: This method always write a new file, instead of appending records to an existing file. For updating,
+        use the MergeByCyclistPoolSeason.update() method.
+
+        :param races: Can be 'all' (default), 'Grand Tour', 'multi', 'single', the full name of a single race,
+            or a list of full names of races.
+        :param seasons: Can be 'all' (default, from 2009 to 2019), a single season of int or str type,
+            or a list of seasons each of int or str type.
+        :param result_types: By default 'SC'. Notice that this parameter should be consistent with the setting of races.
+        :param include_ttt: Boolean. Whether to include TTT stages. By default False.
+        :param meta_only: Boolean. If true (default), only meta-data of the cyclists results from different perspectives
+            will be remained (e.g., total plain races, average plain rank, etc.), not individual records of races.
+        """
+        return self._merge_by_cyclist_pool_season(seasons, races, result_types, include_ttt, meta_only, option='create')
+
+    def update(self, races='all', seasons='all', result_types=('SC', 'GC'), include_ttt=False, meta_only=True):
+        """Adding new records to an existing file. Similar protocol to MergeByCyclistSplitBySeason.create() method."""
+        return self._merge_by_cyclist_pool_season(seasons, races, result_types, include_ttt, meta_only, option='update')
+
+    def _merge_by_cyclist_pool_season(self, seasons, races, result_types, include_ttt, meta_only=True, option='create'):
+        """Merge records for every individual cyclist from multiple seasons, forming a single file.
+
+        By default, this method write a new file, instead of appending records to an existing file.
+        """
+        start = time.clock()
+
+        seasons = basics.get_seasons_list(seasons)
+        races = basics.get_races_list(races)
+        result_types = basics.get_result_types_list(result_types)
+        self.merge_dir
+        pass
+
+
+class GenerateCyclistMeta(object):
+    """Generate documents storing the meta records of individual cyclists."""
+
+    def __init__(self):
+        self.merge_dir = os.path.join(ROOT, r"Cyclist_Meta")
+        self.races_list_path = os.path.join(ROOT, r"MetaData\races_list.csv")
+        self.source_dir = os.path.join(ROOT, r"Cyclist_Records")
+        return
+
+    def gen_meta(self):
+        """
+        Generate meta-data on:
+        1. Total all/all irr/plain/medium/high/itt races (with a valid ranking)
+        2. Average rank/rank_norm/time lag_norm/speed rel to winner/speed rel to median for
+            all/all irr/plain/medium/high/itt races
+        """
+        start = time.clock()
+        with open('competition_codes_rev.json', 'r', encoding=ENCODING) as fr:
+            competition_codes_rev = json.load(fr)
+            fr.close()
+        with open(self.races_list_path, 'r', encoding=ENCODING) as fr:
+            races_list = pd.read_csv(fr)
+            fr.close()
+        races_list_dict = {}
+        races_list_dict.update([(row[1]['ID'], row[0]) for row in races_list.iterrows()])
+        attrs = ['Num', 'Avg Rank', 'Avg Rank_Norm', 'Avg Time Lag_Norm',
+                 'Avg Speed Rel to Winner', 'Avg Speed Rel to Median']
+
+        count = 0
+        for source_file in os.listdir(self.source_dir):
+            source_path = os.path.join(self.source_dir, source_file)
+            with open(source_path, 'r', encoding=ENCODING) as fr:
+                source_records = json.load(fr)
+                fr.close()
+
+            cyclist_meta_dict_sc = dict([
+                (profile, {}) for profile in ['Total', 'IRR', 'Plain', 'Medium', 'High', 'ITT']
+            ])
+            cyclist_meta_dict_gc = dict([
+                (race_cat, {}) for race_cat in ['Total', 'Grand Tour', 'Other Multi', 'Single']
+            ])
+            for profile_dict in cyclist_meta_dict_sc.values():
+                profile_dict.update([(attr, []) for attr in attrs])
+            for cat_dict in cyclist_meta_dict_gc.values():
+                cat_dict.update([(attr, []) for attr in attrs])
+
+            for race_id, race_record in source_records.items():
+                for result_type, type_record in race_record.items():
+                    if pd.isna(type_record['Rank']):
+                        continue
+                    else:
+                        race_index = races_list_dict[race_id]
+                        race_type = races_list['Type'][race_index]
+                    if result_type == 'GC':
+                        race_name = competition_codes_rev[race_id[:3]]
+                        if race_name in global_vars.get_value('GRAND TOUR'):
+                            race_cat = 'Grand Tour'
+                        elif race_name in global_vars.get_value('MULTI-STAGES'):
+                            race_cat = 'Other Multi'
+                        else:
+                            race_cat = 'Single'
+                        for attr in attrs:
+                            if attr == 'Num':
+                                new_append = 1 if pd.notna(type_record['Rank']) else 0
+                            elif 'Speed' in attr:
+                                new_append = type_record[attr]
+                            else:
+                                new_append = type_record[attr.split('Avg ')[1]]
+                            cyclist_meta_dict_gc['Total'][attr].append(new_append)
+                            cyclist_meta_dict_gc[race_cat][attr].append(new_append)
+                    if race_type in ['IRR', 'ITT'] and result_type in ['SC', 'GC']:  # 注意：单日赛会同时被添加到gc和sc两个文件里
+                        profile = race_type if race_type == 'ITT' else races_list['Profile'][race_index].split(' ')[0]
+                        for attr in attrs:
+                            if attr == 'Num':
+                                new_append = 1 if pd.notna(type_record['Rank']) else 0
+                            elif 'Speed' in attr:
+                                new_append = type_record[attr]
+                            else:
+                                new_append = type_record[attr.split('Avg ')[1]]
+                            cyclist_meta_dict_sc['Total'][attr].append(new_append)
+                            cyclist_meta_dict_sc[profile][attr].append(new_append)
+                            if profile != 'ITT':
+                                cyclist_meta_dict_sc['IRR'][attr].append(new_append)
+            cyclist_id = os.path.splitext(source_file)[0]
+            gc_dir = os.path.join(self.merge_dir, 'GC')
+            sc_dir = os.path.join(self.merge_dir, 'SC')
+            if not os.path.exists(gc_dir):
+                os.makedirs(gc_dir)
+            if not os.path.exists(sc_dir):
+                os.makedirs(sc_dir)
+            with open(os.path.join(gc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
+                json.dump(cyclist_meta_dict_gc, fw)
+                fw.close()
+            with open(os.path.join(sc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
+                json.dump(cyclist_meta_dict_sc, fw)
+                fw.close()
+            for cat_dict in cyclist_meta_dict_gc.values():
+                num = sum(cat_dict['Num'])
+                for attr in cat_dict.keys():
+                    if attr == 'Num':
+                        cat_dict[attr] = num
+                    else:
+                        cat_dict[attr] = np.nan if num == 0 else np.nansum(cat_dict[attr]) / num
+            for profile_dict in cyclist_meta_dict_sc.values():
+                num = sum(profile_dict['Num'])
+                for attr in profile_dict.keys():
+                    if attr == 'Num':
+                        profile_dict[attr] = num
+                    else:
+                        profile_dict[attr] = np.nan if num == 0 else np.nansum(profile_dict[attr]) / num
+            with open(os.path.join(gc_dir, '_'.join([cyclist_id, 'avg']) + '.json'), 'w', encoding=ENCODING) as fw:
+                json.dump(cyclist_meta_dict_gc, fw)
+                fw.close()
+            with open(os.path.join(sc_dir, '_'.join([cyclist_id, 'avg']) + '.json'), 'w', encoding=ENCODING) as fw:
+                json.dump(cyclist_meta_dict_sc, fw)
+                fw.close()
+            count += 1
+            if not count % 100:
+                print("{} cyclists merged. Total time: {}".format(count, time.clock() - start))
+
+        return
+
+    def merge_meta(self):
+        cyclists_list_path = os.path.join(ROOT, r"MetaData\cyclists_list.csv")
+        with open(cyclists_list_path, 'r', encoding=ENCODING) as fr:
+            cyclists_list = pd.read_csv(fr)
+            fr.close()
+        cyclists_dict = dict([
+            (row[1]['ID'], row[1]['Full Name']) for row in cyclists_list.iterrows()
+        ])
+        self._merge_meta_by_type('GC', self.merge_dir, cyclists_dict)
+        self._merge_meta_by_type('SC', self.merge_dir, cyclists_dict)
+        return
+
+    def _merge_meta_by_type(self, result_type, to_dir, cyclists_dict):
+        if os.path.isdir(to_dir):
+            source_dir = os.path.join(self.merge_dir, result_type)
+            merged_df = pd.DataFrame()
+            count = 0
+            for source_name in os.listdir(source_dir):
+                if 'avg' in source_name:
+                    cyclist_id = source_name.split('_')[0]
+                    to_merge_dict = {
+                        'ID': cyclist_id,
+                        'Full Name': cyclists_dict[cyclist_id],
+                        'Country': cyclist_id[:3]
+                    }
+                    source_path = os.path.join(source_dir, source_name)
+                    with open(source_path, 'r', encoding=ENCODING) as fr:
+                        source_data = json.load(fr)
+                        fr.close()
+                    for cat, cat_dict in source_data.items():
+                        for attr, value in cat_dict.items():
+                            to_merge_dict[': '.join([cat, attr])] = value
+                    merged_df = pd.concat([merged_df, pd.DataFrame(to_merge_dict, index=[0])],
+                                          ignore_index=True, sort=False)
+                    count += 1
+                    if not count % 200:
+                        print("{} cyclists merged for {} results".format(count, result_type))
+            basics.write_csv_bom(merged_df, os.path.join(to_dir, 'cyclist_meta_merged_' + result_type + '.csv'))
+            return 1
+        else:
+            print("Invalid directory to export the merged file.")
+            return 0

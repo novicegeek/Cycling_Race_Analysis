@@ -327,12 +327,19 @@ class GenerateCyclistMeta(object):
         self.source_dir = os.path.join(ROOT, r"Cyclist_Records")
         return
 
-    def gen_meta(self):
+    def gen_meta(self, races_filter='all', criteria='both', merge=True):
         """
         Generate meta-data on:
         1. Total all/all irr/plain/medium/high/itt races (with a valid ranking)
         2. Average rank/rank_norm/time lag_norm/speed rel to winner/speed rel to median for
             all/all irr/plain/medium/high/itt races
+
+        :param races_filter: To filter the races to generate meta-data for.
+            Can only be one of 'all'(default), 'grand_tour', 'other_multi', 'all_multi', and 'single'.
+        :param criteria: Determine what summarised information to generate.
+            Can only be one of 'avg'(default, when the average performance statistics will be calculated),
+            'best' (when only the best-performance record will be included for each cyclist), or 'both'.
+        :param merge: Boolean. Whether to merge meta-records of all cyclists after generating them.
         """
         start = time.clock()
         with open('competition_codes_rev.json', 'r', encoding=ENCODING) as fr:
@@ -343,7 +350,27 @@ class GenerateCyclistMeta(object):
             fr.close()
         races_list_dict = {}
         races_list_dict.update([(row[1]['ID'], row[0]) for row in races_list.iterrows()])
-        attrs = ['Num', 'Avg Rank', 'Avg Rank_Norm', 'Avg Time Lag_Norm',
+        if races_filter == 'all':
+            races = set(global_vars.get_value('RACES'))
+        elif races_filter == 'grand_tour':
+            races = set(global_vars.get_value('GRAND TOUR'))
+        elif races_filter == 'other_multi':
+            races = set(global_vars.get_value('MULTI-STAGES')) - set(global_vars.get_value('GRAND TOUR'))
+        elif races_filter == 'all_multi':
+            races = set(global_vars.get_value('MULTI-STAGES'))
+        elif races_filter == 'single':
+            races = set(global_vars.get_value('SINGLE-STAGE'))
+        else:
+            raise ValueError('Invalid races filter.')
+        if criteria in ['avg', 'best']:
+            criteria = [criteria.capitalize()]
+        elif criteria == 'both':
+            criteria = ['Avg', 'Best']
+        else:
+            raise ValueError('Invalid summarising criteria.')
+
+        # The attributes to be included in the meta-data document
+        attrs = ['Num', 'Rank', 'Rank_Norm', 'Time Lag_Norm',
                  'Avg Speed Rel to Winner', 'Avg Speed Rel to Median']
 
         count = 0
@@ -352,27 +379,30 @@ class GenerateCyclistMeta(object):
             with open(source_path, 'r', encoding=ENCODING) as fr:
                 source_records = json.load(fr)
                 fr.close()
+            cyclist_id = os.path.splitext(source_file)[0]
 
+            # The dictionaries to store (temporarily) the meta-data, which will finally be written as dataframes
+            cyclist_meta_dict_gc = dict([
+                (race_cat, {}) for race_cat in ['Total', 'Grand Tour', 'Other Multi', 'All Multi', 'Single']
+            ])
             cyclist_meta_dict_sc = dict([
                 (profile, {}) for profile in ['Total', 'IRR', 'Plain', 'Medium', 'High', 'ITT']
             ])
-            cyclist_meta_dict_gc = dict([
-                (race_cat, {}) for race_cat in ['Total', 'Grand Tour', 'Other Multi', 'Single']
-            ])
-            for profile_dict in cyclist_meta_dict_sc.values():
-                profile_dict.update([(attr, []) for attr in attrs])
             for cat_dict in cyclist_meta_dict_gc.values():
                 cat_dict.update([(attr, []) for attr in attrs])
+            for profile_dict in cyclist_meta_dict_sc.values():
+                profile_dict.update([(attr, []) for attr in attrs])
 
             for race_id, race_record in source_records.items():
                 for result_type, type_record in race_record.items():
-                    if pd.isna(type_record['Rank']):
+                    if pd.isna(type_record['Rank']):  # Skip races that were not finished normally
                         continue
-                    else:
-                        race_index = races_list_dict[race_id]
-                        race_type = races_list['Type'][race_index]
+                    race_name = competition_codes_rev[race_id[:3]]
+                    if race_name not in races:
+                        continue
+                    race_index = races_list_dict[race_id]
+                    race_type = races_list['Type'][race_index]
                     if result_type == 'GC':
-                        race_name = competition_codes_rev[race_id[:3]]
                         if race_name in global_vars.get_value('GRAND TOUR'):
                             race_cat = 'Grand Tour'
                         elif race_name in global_vars.get_value('MULTI-STAGES'):
@@ -382,28 +412,29 @@ class GenerateCyclistMeta(object):
                         for attr in attrs:
                             if attr == 'Num':
                                 new_append = 1 if pd.notna(type_record['Rank']) else 0
-                            elif 'Speed' in attr:
-                                new_append = type_record[attr]
                             else:
-                                new_append = type_record[attr.split('Avg ')[1]]
+                                new_append = type_record[attr]
                             cyclist_meta_dict_gc['Total'][attr].append(new_append)
                             cyclist_meta_dict_gc[race_cat][attr].append(new_append)
-                    if race_type in ['IRR', 'ITT'] and result_type in ['SC', 'GC']:  # 注意：单日赛会同时被添加到gc和sc两个文件里
+                            if race_cat != 'Single':
+                                cyclist_meta_dict_gc['All Multi'][attr].append(new_append)
+                    # 1. The type of single-stage races is IRR, not OVR
+                    # 2. The single-stage races will be added to both SC and GC meta-data repositories
+                    if race_type in ['IRR', 'ITT'] and result_type in ['SC', 'GC']:
                         profile = race_type if race_type == 'ITT' else races_list['Profile'][race_index].split(' ')[0]
                         for attr in attrs:
                             if attr == 'Num':
                                 new_append = 1 if pd.notna(type_record['Rank']) else 0
-                            elif 'Speed' in attr:
-                                new_append = type_record[attr]
                             else:
-                                new_append = type_record[attr.split('Avg ')[1]]
+                                new_append = type_record[attr]
                             cyclist_meta_dict_sc['Total'][attr].append(new_append)
                             cyclist_meta_dict_sc[profile][attr].append(new_append)
                             if profile != 'ITT':
                                 cyclist_meta_dict_sc['IRR'][attr].append(new_append)
-            cyclist_id = os.path.splitext(source_file)[0]
-            gc_dir = os.path.join(self.merge_dir, 'GC')
-            sc_dir = os.path.join(self.merge_dir, 'SC')
+
+            # First, write individual records
+            gc_dir = os.path.join(self.merge_dir, '_'.join([races_filter, 'GC']))
+            sc_dir = os.path.join(self.merge_dir, '_'.join([races_filter, 'SC']))
             if not os.path.exists(gc_dir):
                 os.makedirs(gc_dir)
             if not os.path.exists(sc_dir):
@@ -414,33 +445,33 @@ class GenerateCyclistMeta(object):
             with open(os.path.join(sc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
                 json.dump(cyclist_meta_dict_sc, fw)
                 fw.close()
-            for cat_dict in cyclist_meta_dict_gc.values():
-                num = sum(cat_dict['Num'])
-                for attr in cat_dict.keys():
-                    if attr == 'Num':
-                        cat_dict[attr] = num
-                    else:
-                        cat_dict[attr] = np.nan if num == 0 else np.nansum(cat_dict[attr]) / num
-            for profile_dict in cyclist_meta_dict_sc.values():
-                num = sum(profile_dict['Num'])
-                for attr in profile_dict.keys():
-                    if attr == 'Num':
-                        profile_dict[attr] = num
-                    else:
-                        profile_dict[attr] = np.nan if num == 0 else np.nansum(profile_dict[attr]) / num
-            with open(os.path.join(gc_dir, '_'.join([cyclist_id, 'avg']) + '.json'), 'w', encoding=ENCODING) as fw:
-                json.dump(cyclist_meta_dict_gc, fw)
-                fw.close()
-            with open(os.path.join(sc_dir, '_'.join([cyclist_id, 'avg']) + '.json'), 'w', encoding=ENCODING) as fw:
-                json.dump(cyclist_meta_dict_sc, fw)
-                fw.close()
+
+            # Then, create new dictionaries to store summarised (meta) data, as assigned by the 'criteria' parameter
+            for criterion in criteria:
+                cyclist_meta_dict_gc_gen = self._get_summarised_dict(cyclist_meta_dict_gc, attrs, criterion)
+                cyclist_meta_dict_sc_gen = self._get_summarised_dict(cyclist_meta_dict_sc, attrs, criterion)
+                with open(os.path.join(gc_dir, '_'.join([cyclist_id, criterion.lower()]) + '.json'),
+                          'w', encoding=ENCODING) as fw:
+                    json.dump(cyclist_meta_dict_gc_gen, fw)
+                    fw.close()
+                with open(os.path.join(sc_dir, '_'.join([cyclist_id, criterion.lower()]) + '.json'),
+                          'w', encoding=ENCODING) as fw:
+                    json.dump(cyclist_meta_dict_sc_gen, fw)
+                    fw.close()
             count += 1
-            if not count % 100:
-                print("{} cyclists merged. Total time: {}".format(count, time.clock() - start))
+            if not count % 300:
+                print("Meta records of {} cyclists generated. Total time: {}".format(count, time.clock() - start))
+
+        if merge:
+            self.merge_meta(races_filter)
 
         return
 
-    def merge_meta(self):
+    def merge_meta(self, races_filter):
+        """
+        :param races_filter: To filter the races to generate meta-data for.
+            Can only be one of 'all', 'grand_tour', 'other_multi', 'all_multi', and 'single'.
+        """
         cyclists_list_path = os.path.join(ROOT, r"MetaData\cyclists_list.csv")
         with open(cyclists_list_path, 'r', encoding=ENCODING) as fr:
             cyclists_list = pd.read_csv(fr)
@@ -448,23 +479,34 @@ class GenerateCyclistMeta(object):
         cyclists_dict = dict([
             (row[1]['ID'], row[1]['Full Name']) for row in cyclists_list.iterrows()
         ])
-        self._merge_meta_by_type('GC', self.merge_dir, cyclists_dict)
-        self._merge_meta_by_type('SC', self.merge_dir, cyclists_dict)
+        self._merge_meta_by_type(cyclists_dict, races_filter, 'GC', 'both', self.merge_dir)
+        self._merge_meta_by_type(cyclists_dict, races_filter, 'SC', 'both', self.merge_dir)
         return
 
-    def _merge_meta_by_type(self, result_type, to_dir, cyclists_dict):
+    def _merge_meta_by_type(self, cyclists_dict, races_filter, result_type, criteria, to_dir):
+        if criteria in ['avg', 'best']:
+            pass
+        elif criteria == 'both':
+            criteria = ['avg', 'best']
+        else:
+            raise ValueError('Invalid criterion for summarising.')
+
         if os.path.isdir(to_dir):
-            source_dir = os.path.join(self.merge_dir, result_type)
+            source_dir_name = '_'.join([races_filter, result_type])
+            source_dir = os.path.join(self.merge_dir, source_dir_name)
+            if not os.path.exists(source_dir):
+                print("No records for {} of {} races exist.".format(result_type, races_filter))
+                return
             merged_df = pd.DataFrame()
             count = 0
-            for source_name in os.listdir(source_dir):
-                if 'avg' in source_name:
-                    cyclist_id = source_name.split('_')[0]
-                    to_merge_dict = {
-                        'ID': cyclist_id,
-                        'Full Name': cyclists_dict[cyclist_id],
-                        'Country': cyclist_id[:3]
-                    }
+            for cyclist_id, cyclist_name in cyclists_dict.items():
+                to_merge_dict = {
+                    'ID': cyclist_id,
+                    'Full Name': cyclist_name,
+                    'Country': cyclist_id[:3]
+                }
+                for criterion in criteria:
+                    source_name = cyclist_id + '_' + criterion + '.json'
                     source_path = os.path.join(source_dir, source_name)
                     with open(source_path, 'r', encoding=ENCODING) as fr:
                         source_data = json.load(fr)
@@ -472,13 +514,39 @@ class GenerateCyclistMeta(object):
                     for cat, cat_dict in source_data.items():
                         for attr, value in cat_dict.items():
                             to_merge_dict[': '.join([cat, attr])] = value
-                    merged_df = pd.concat([merged_df, pd.DataFrame(to_merge_dict, index=[0])],
-                                          ignore_index=True, sort=False)
-                    count += 1
-                    if not count % 200:
-                        print("{} cyclists merged for {} results".format(count, result_type))
-            basics.write_csv_bom(merged_df, os.path.join(to_dir, 'cyclist_meta_merged_' + result_type + '.csv'))
+                merged_df = pd.concat([merged_df, pd.DataFrame(to_merge_dict, index=[0])],
+                                      ignore_index=True, sort=False)
+                count += 1
+                if not count % 500:
+                    print("Meta records merged for {} cyclists for {} results of {} races"
+                          .format(count, result_type, races_filter))
+            basics.write_csv_bom(merged_df, os.path.join(to_dir, 'cyclist_meta_merged_' + source_dir_name + '.csv'))
             return 1
         else:
             print("Invalid directory to export the merged file.")
-            return 0
+            return
+
+    @staticmethod
+    def _get_summarised_dict(full_dict, attrs, criterion):
+        """Generate summarised dictionary from dictionary of full records."""
+        summarised_dict = {}
+        for key, value in full_dict.items():
+            if summarised_dict.get(key) is None:
+                summarised_dict[key] = {}
+            num = sum(value['Num'])
+            for attr in attrs:
+                if attr == 'Num':
+                    summarised_dict[key][attr] = num
+                elif criterion == 'Avg':
+                    summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
+                        else np.nansum(value[attr]) / num
+                elif 'Speed' in attr:
+                    summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
+                        else float(np.nanmax(value[attr]))
+                elif attr != 'Rank':
+                    summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
+                        else float(np.nanmin(value[attr]))
+                else:  # np.int32类型无法写入json
+                    summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
+                        else int(np.nanmin(value[attr]))
+        return summarised_dict

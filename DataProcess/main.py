@@ -44,9 +44,9 @@ if __name__ == '__main__':
     # meta_gen = merge_records.GenerateMetaByCyclistSplitBySeason()
     # meta_gen.gen_meta(seasons=2019, in_place=False)
 
-    meta_gen = merge_records.GenerateCyclistMeta()
-    # meta_gen.gen_meta()
-    meta_gen.merge_meta()
+    # meta_gen = merge_records.GenerateCyclistMeta()
+    # meta_gen.gen_meta(races_filter='single', merge=True)
+    # meta_gen.merge_meta(races_filter='all')
 
     # var_gen = gen_var.VarGenerator()
     # var_gen.gen_vars_all(race_range=['Tour de France', 'Vuelta a España'])

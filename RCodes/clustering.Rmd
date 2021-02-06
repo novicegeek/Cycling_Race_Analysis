@@ -1,0 +1,89 @@
+---
+title: "clustering"
+output: html_notebook
+---
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+<!-- 载入需要的包 -->
+```{r}
+library(tidyverse)
+library(mclust)
+library(cluster)
+library(NbClust)
+library(knitr)
+ROOT = "F:/Documents/Li/Master'sThesis/Data"
+```
+
+<!-- 筛取数据 -->
+```{r}
+cyclist_meta_dir <-  paste(
+  ROOT, "Cyclist_Meta", sep = "/"
+  )
+cyclist_meta_path_sc <- paste(
+  cyclist_meta_dir, "cyclist_meta_merged_SC.csv", sep = "/"
+  )
+cyclist_meta_sc <-  readr::read_csv(cyclist_meta_path_sc)
+cyclist_meta_sc_filtered <-  dplyr::filter(
+  cyclist_meta_sc, 
+  `Plain: Num` >= 3 & `Medium: Num` >=3 & `High: Num` >= 3
+  )
+for (profile in c("Plain", "Medium", "High")){
+  col_name <- paste(profile, "Avg Rank", sep = ": ")
+  dev.new()
+  profile_hist <- hist(
+    cyclist_meta_sc_filtered[[col_name]]
+    )
+  dev.hold()
+}
+
+```
+
+<!-- Clustering tendency assessment -->
+```{r}
+library(factoextra)
+
+# Read a sample data set
+# CAUTION: read.csv() (in utils) can not decode special, non-English characters directly; read_csv() (in readr) can
+clusttend_data <- read_csv(
+  "D:/PKU/LuLab/Master'sThesis/Data/TestData/Cluster Tendency/meta_merge_by_cyclist_2019_SC&GC.csv"
+  )
+
+# Only include the derivative variables
+data_input <- clusttend_data[,seq(10,41,7)]
+data_input_no_outlier <- na.omit(data_input)
+data_input_time_normalized_to_plain <- clusttend_data[,seq(20,41,7)]
+data_input_time_normalized_no_outlier <- na.omit(data_input_time_normalized_to_plain)
+data_input_time <- clusttend_data[,seq(12,41,7)]
+data_input_time_no_na <- na.omit(data_input_time)
+
+# 发现部分变量高度相关，所以计算出来的Hopkins统计量肯定会很大；
+# 去掉high和total两列尝试得到h=0.6149，与0.5比较接近，说明与均匀分布比较接近
+hpkins_rank_norm <- get_clust_tendency(
+  data = data_input_no_outlier[, c(1, 2, 4)], 
+  n = 100,
+  graph = TRUE)
+
+plot(data_input_time_normalized_no_outlier)
+
+fviz_pca_ind(prcomp(data_input_no_outlier),
+             title = "PCA-GrandTour2019",
+             palette = "jco", geom = "point",
+             ggtheme = theme_classic(),
+             legend = "bottom")
+
+```
+
+<!-- 测试块 -->
+```{r}
+
+ftest <- "Converted_Tidied/TDF/2019/20190724_TDF_S17_SC.csv"
+rtest <- read_csv(ftest)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

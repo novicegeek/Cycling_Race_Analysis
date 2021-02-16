@@ -327,7 +327,7 @@ class GenerateCyclistMeta(object):
         self.source_dir = os.path.join(ROOT, r"Cyclist_Records")
         return
 
-    def gen_meta(self, races_filter='all', criteria='both', merge=True):
+    def gen_meta(self, races_filter='all', stage_class='profile', split=None, criteria='both', merge=True):
         """
         Generate meta-data on:
         1. Total all/all irr/plain/medium/high/itt races (with a valid ranking)
@@ -336,6 +336,20 @@ class GenerateCyclistMeta(object):
 
         :param races_filter: To filter the races to generate meta-data for.
             Can only be one of 'all'(default), 'grand_tour', 'other_multi', 'all_multi', and 'single'.
+        :param stage_class: How to classify the stages? By default 'profile', which means the stages will be classified
+            according to the assigned profile type, i.e. 'Plain', 'Medium Mountain', etc.
+            Alternative values are 'median speed interval', 'median speed quantile', 'winner speed interval', and
+            'winner speed quantile'. All cases except 'profile' require a valid 'split' input.
+        :param split: Only required when the stage_class parameter is not 'profile', and the allowed types are list,
+            tuple and set when required.
+            In the case of 'median speed interval', it defines the boundary points of speed intervals (open at the left
+            and closed at the right) to classify stages, with unit being kph. E.g., an input of
+            [0, 35, 40, 45, 50, np.Inf] produces 5 classes of stages. When 0 or np.Inf is absent at the leftmost or
+            rightmost of the input, respectively, the function will make them up automatically.
+            In the case of 'median speed quantile', all are similar to 'interval' but the individual input element
+            refers to speed quantiles of all relevant stages to the 'races_filter' parameter. E.g., if the
+            'races_filter' is 'other_multi', the calculation of quantiles will be based only on non-Grand-Tour multi-
+            stage races. The quantile values can be decimals (no greater than 1) or percentages (no greater than 100).
         :param criteria: Determine what summarised information to generate.
             Can only be one of 'avg'(default, when the average performance statistics will be calculated),
             'best' (when only the best-performance record will be included for each cyclist), or 'both'.
@@ -350,6 +364,7 @@ class GenerateCyclistMeta(object):
             fr.close()
         races_list_dict = {}
         races_list_dict.update([(row[1]['ID'], row[0]) for row in races_list.iterrows()])
+        # Check the races filter
         if races_filter == 'all':
             races = set(global_vars.get_value('RACES'))
         elif races_filter == 'grand_tour':
@@ -362,6 +377,36 @@ class GenerateCyclistMeta(object):
             races = set(global_vars.get_value('SINGLE-STAGE'))
         else:
             raise ValueError('Invalid races filter.')
+        # Check the required stage classification criteria
+        if stage_class == 'profile':
+            do_gc = True
+            stage_class_fields = ['Total', 'IRR', 'Plain', 'Medium', 'High', 'ITT']
+        elif 'interval' in stage_class or 'quantile' in stage_class:
+            if type(split) not in [list, tuple, set]:
+                raise TypeError('The split input can only be one among list, tuple and set.')
+            do_gc = False
+            split = list(split)
+            split.sort()
+            if split[0] < 0:
+                raise ValueError('Negative value in the split.')
+            elif split[0] > 0:
+                split.insert(0, 0)
+            if 'interval' in stage_class:
+                if split[-1] < np.Inf:
+                    split.append(np.Inf)
+            elif 'quantile' in stage_class:
+                if split[-1] < 1:
+                    split.append(1)
+                elif 1 < split[-1] < 100:
+                    split.append(100)
+                    split = [quant / 100 for quant in split]
+            stage_class_cap = ' '.join([item.capitalize() for item in stage_class.split(' ')])
+            # Create fields like 'Median Speed Interval 35-40' with the lower and upper bound of interval are recorded
+            stage_class_fields = [stage_class_cap + ' ' + str(split[i]) + '-' + str(split[i+1])
+                                  for i in range(len(split)-1)]
+        else:
+            raise ValueError('Invalid stage classification method.')
+        # Check the data summarising criteria
         if criteria in ['avg', 'best']:
             criteria = [criteria.capitalize()]
         elif criteria == 'both':
@@ -369,9 +414,37 @@ class GenerateCyclistMeta(object):
         else:
             raise ValueError('Invalid summarising criteria.')
 
+        # Write temporary stage classification information into the races list dataframe
+        if 'winner speed' in stage_class:
+            source_colname = 'Winner Avg Speed'
+        elif 'median speed' in stage_class:
+            source_colname = 'Median Avg Speed'
+        else:
+            raise ValueError('Invalid stage classification method.')
+        if 'quantile' in stage_class:
+            speed_list = []
+            for row in races_list.iterrows():
+                if competition_codes_rev[row[1]['ID'][:3]] in races and \
+                        (row[1]['Type'] in ['IRR', 'ITT'] or row[1]['Is Multi-Stage'] == 0):
+                    speed_list.append(row[1][source_colname])
+                    races_list.loc.__setitem__((row[0], stage_class_cap), -1)  # Mark as visited
+            split = list(np.nanquantile(speed_list, split))  # Get the quantile speeds
+            for row in races_list.iterrows():
+                if row[1][stage_class_cap] == -1:
+                    interval = basics.find_interval(split, row[1][source_colname])
+                    if interval is not None:
+                        races_list.loc.__setitem__((row[0], stage_class_cap), stage_class_fields[interval])
+        elif 'interval' in stage_class:
+            for row in races_list.iterrows():
+                interval = basics.find_interval(split, row[1][source_colname])
+                if interval is not None:
+                    races_list.loc.__setitem__((row[0], stage_class_cap), stage_class_fields[interval])
+
         # The attributes to be included in the meta-data document
         attrs = ['Num', 'Rank', 'Rank_Norm', 'Time Lag_Norm',
                  'Avg Speed Rel to Winner', 'Avg Speed Rel to Median']
+        sc_root = os.path.join(self.merge_dir, 'SC_by_' + '_'.join([item for item in stage_class.split(' ')]))
+        gc_root = os.path.join(self.merge_dir, 'GC')
 
         count = 0
         for source_file in os.listdir(self.source_dir):
@@ -382,16 +455,18 @@ class GenerateCyclistMeta(object):
             cyclist_id = os.path.splitext(source_file)[0]
 
             # The dictionaries to store (temporarily) the meta-data, which will finally be written as dataframes
-            cyclist_meta_dict_gc = dict([
-                (race_cat, {}) for race_cat in ['Total', 'Grand Tour', 'Other Multi', 'All Multi', 'Single']
-            ])
-            cyclist_meta_dict_sc = dict([
-                (profile, {}) for profile in ['Total', 'IRR', 'Plain', 'Medium', 'High', 'ITT']
-            ])
-            for cat_dict in cyclist_meta_dict_gc.values():
-                cat_dict.update([(attr, []) for attr in attrs])
-            for profile_dict in cyclist_meta_dict_sc.values():
-                profile_dict.update([(attr, []) for attr in attrs])
+
+            if do_gc:
+                cyclist_meta_dict_gc = dict([
+                    (race_cat, {}) for race_cat in ['Total', 'Grand Tour', 'Other Multi', 'All Multi', 'Single']
+                ])
+                for cat_dict in cyclist_meta_dict_gc.values():
+                    cat_dict.update([(attr, []) for attr in attrs])
+            else:
+                cyclist_meta_dict_gc = {}
+            cyclist_meta_dict_sc = dict([('Total', {})] + [(field, {}) for field in stage_class_fields])
+            for field_dict in cyclist_meta_dict_sc.values():
+                field_dict.update([(attr, []) for attr in attrs])
 
             for race_id, race_record in source_records.items():
                 for result_type, type_record in race_record.items():
@@ -402,7 +477,7 @@ class GenerateCyclistMeta(object):
                         continue
                     race_index = races_list_dict[race_id]
                     race_type = races_list['Type'][race_index]
-                    if result_type == 'GC':
+                    if result_type == 'GC' and do_gc:
                         if race_name in global_vars.get_value('GRAND TOUR'):
                             race_cat = 'Grand Tour'
                         elif race_name in global_vars.get_value('MULTI-STAGES'):
@@ -421,39 +496,44 @@ class GenerateCyclistMeta(object):
                     # 1. The type of single-stage races is IRR, not OVR
                     # 2. The single-stage races will be added to both SC and GC meta-data repositories
                     if race_type in ['IRR', 'ITT'] and result_type in ['SC', 'GC']:
-                        profile = race_type if race_type == 'ITT' else races_list['Profile'][race_index].split(' ')[0]
+                        if stage_class == 'profile':
+                            field = race_type if race_type == 'ITT' else races_list['Profile'][race_index].split(' ')[0]
+                        else:
+                            field = races_list[stage_class_cap][race_index]
                         for attr in attrs:
                             if attr == 'Num':
                                 new_append = 1 if pd.notna(type_record['Rank']) else 0
                             else:
                                 new_append = type_record[attr]
                             cyclist_meta_dict_sc['Total'][attr].append(new_append)
-                            cyclist_meta_dict_sc[profile][attr].append(new_append)
-                            if profile != 'ITT':
+                            cyclist_meta_dict_sc[field][attr].append(new_append)
+                            if stage_class == 'profile' and field != 'ITT':
                                 cyclist_meta_dict_sc['IRR'][attr].append(new_append)
 
-            # First, write individual records
-            gc_dir = os.path.join(self.merge_dir, '_'.join([races_filter, 'GC']))
-            sc_dir = os.path.join(self.merge_dir, '_'.join([races_filter, 'SC']))
-            if not os.path.exists(gc_dir):
-                os.makedirs(gc_dir)
+            # First, write individual full records
+            if do_gc:
+                gc_dir = os.path.join(gc_root, '_'.join([races_filter, 'GC']))
+                if not os.path.exists(gc_dir):
+                    os.makedirs(gc_dir)
+                with open(os.path.join(gc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
+                    json.dump(cyclist_meta_dict_gc, fw)
+                    fw.close()
+                # Then, create new dictionaries to store summarised (meta) data, as assigned by the 'criteria' parameter
+                for criterion in criteria:
+                    cyclist_meta_dict_gc_gen = self._get_summarised_dict(cyclist_meta_dict_gc, attrs, criterion)
+                    with open(os.path.join(gc_dir, '_'.join([cyclist_id, criterion.lower()]) + '.json'),
+                              'w', encoding=ENCODING) as fw:
+                        json.dump(cyclist_meta_dict_gc_gen, fw)
+                        fw.close()
+            # Do the same on SC records, without judging the existence of dictionary
+            sc_dir = os.path.join(sc_root, '_'.join([races_filter, 'SC']))
             if not os.path.exists(sc_dir):
                 os.makedirs(sc_dir)
-            with open(os.path.join(gc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
-                json.dump(cyclist_meta_dict_gc, fw)
-                fw.close()
             with open(os.path.join(sc_dir, '_'.join([cyclist_id, 'full']) + '.json'), 'w', encoding=ENCODING) as fw:
                 json.dump(cyclist_meta_dict_sc, fw)
                 fw.close()
-
-            # Then, create new dictionaries to store summarised (meta) data, as assigned by the 'criteria' parameter
             for criterion in criteria:
-                cyclist_meta_dict_gc_gen = self._get_summarised_dict(cyclist_meta_dict_gc, attrs, criterion)
                 cyclist_meta_dict_sc_gen = self._get_summarised_dict(cyclist_meta_dict_sc, attrs, criterion)
-                with open(os.path.join(gc_dir, '_'.join([cyclist_id, criterion.lower()]) + '.json'),
-                          'w', encoding=ENCODING) as fw:
-                    json.dump(cyclist_meta_dict_gc_gen, fw)
-                    fw.close()
                 with open(os.path.join(sc_dir, '_'.join([cyclist_id, criterion.lower()]) + '.json'),
                           'w', encoding=ENCODING) as fw:
                     json.dump(cyclist_meta_dict_sc_gen, fw)
@@ -462,15 +542,21 @@ class GenerateCyclistMeta(object):
             if not count % 300:
                 print("Meta records of {} cyclists generated. Total time: {}".format(count, time.clock() - start))
 
+        if merge and do_gc:
+            self.merge_meta(races_filter, 'GC', criteria, gc_root, gc_root)
         if merge:
-            self.merge_meta(races_filter)
+            self.merge_meta(races_filter, 'SC', criteria, sc_root, sc_root)
 
         return
 
-    def merge_meta(self, races_filter):
+    def merge_meta(self, races_filter, result_type, criteria, source_root, to_dir):
         """
         :param races_filter: To filter the races to generate meta-data for.
             Can only be one of 'all', 'grand_tour', 'other_multi', 'all_multi', and 'single'.
+        :param result_type:
+        :param criteria:
+        :param source_root:
+        :param to_dir:
         """
         cyclists_list_path = os.path.join(ROOT, r"MetaData\cyclists_list.csv")
         with open(cyclists_list_path, 'r', encoding=ENCODING) as fr:
@@ -479,21 +565,21 @@ class GenerateCyclistMeta(object):
         cyclists_dict = dict([
             (row[1]['ID'], row[1]['Full Name']) for row in cyclists_list.iterrows()
         ])
-        self._merge_meta_by_type(cyclists_dict, races_filter, 'GC', 'both', self.merge_dir)
-        self._merge_meta_by_type(cyclists_dict, races_filter, 'SC', 'both', self.merge_dir)
+        self._merge_meta_by_type(cyclists_dict, races_filter, result_type, criteria, source_root, to_dir)
         return
 
-    def _merge_meta_by_type(self, cyclists_dict, races_filter, result_type, criteria, to_dir):
-        if criteria in ['avg', 'best']:
+    @staticmethod
+    def _merge_meta_by_type(cyclists_dict, races_filter, result_type, criteria, source_root, to_dir):
+        if criteria in ['avg', 'best'] or set(criteria) == {'avg', 'best'}:
             pass
-        elif criteria == 'both':
+        elif set([criterion.lower() for criterion in criteria]) == {'avg', 'best'} or criteria == 'both':
             criteria = ['avg', 'best']
         else:
             raise ValueError('Invalid criterion for summarising.')
 
         if os.path.isdir(to_dir):
             source_dir_name = '_'.join([races_filter, result_type])
-            source_dir = os.path.join(self.merge_dir, source_dir_name)
+            source_dir = os.path.join(source_root, source_dir_name)
             if not os.path.exists(source_dir):
                 print("No records for {} of {} races exist.".format(result_type, races_filter))
                 return
@@ -543,7 +629,7 @@ class GenerateCyclistMeta(object):
                 elif 'Speed' in attr:
                     summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
                         else float(np.nanmax(value[attr]))
-                elif attr != 'Rank':
+                elif attr != 'Rank':  # 对应于Rank_Norm和Time Lag_Norm
                     summarised_dict[key][' '.join([criterion, attr])] = np.nan if num == 0 \
                         else float(np.nanmin(value[attr]))
                 else:  # np.int32类型无法写入json

@@ -55,6 +55,22 @@ def create_race_id(race_abbr, year, is_multi_stage, from_race_meta, stage=None, 
     return race_abbr + str(year) + stage_code
 
 
+def find_interval(endpoints, number, left_open=True, sort=False):
+    endpoints = list(endpoints)
+    if sort:
+        endpoints.sort()
+    for i in range(len(endpoints) - 1):
+        if pd.isna(number):
+            return None
+        elif left_open and \
+                (endpoints[i] < number <= endpoints[i+1] or (i == 0 and number == endpoints[i])):
+            return i
+        elif not left_open and \
+                (endpoints[i] <= number < endpoints[i+1] or (i == len(endpoints) - 2 and number == endpoints[i])):
+            return i
+    return None
+
+
 def get_file_list(file_dir, extension=None):
     """
     To extract the COMPLETE paths of all files belonging to a directory, including those in its subdirectories.

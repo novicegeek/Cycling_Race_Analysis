@@ -1,34 +1,7 @@
 ## 载入需要的包
-library(car)
-library(tidyverse)
-
-
-AXES = list(
-  "Plain" = c(1, 0, 0),
-  "Medium" = c(0, 1, 0),
-  "High" = c(0, 0, 1)
-)
-PROFILES = c("Plain", "Medium", "High")
-ROOT = "F:/Documents/Li/Master'sThesis/Data"
-PLOT_DIR = paste(ROOT, "Plots", sep = "/")
-
-
-## 筛取数据
-filter_data <- function(){
-  cyclist_meta_dir <- paste(
-    ROOT, "Cyclist_Meta", sep = "/"
-  )
-  cyclist_meta_path_sc <- paste(
-    cyclist_meta_dir, "cyclist_meta_merged_SC.csv", sep = "/"
-  )
-  cyclist_meta_sc <- readr::read_csv(cyclist_meta_path_sc)
-  cyclist_meta_sc_filtered <- dplyr::filter(
-    cyclist_meta_sc,
-    `Plain: Num` >= 3 & `Medium: Num` >=3 & `High: Num` >= 3
-  )
-  save.image()
-  return(cyclist_meta_sc_filtered)
-}
+require(car)
+require(tidyverse)
+source('basics.R')
 
 
 # ## 检验正态性
@@ -118,11 +91,62 @@ filter_data <- function(){
 #     )
 # }
 # Friedman Test
-friedman <- function(){
-  avg_ranks <- as.matrix(cyclist_meta_sc_filtered[, c(
-    "Plain: Avg Rank", "Medium: Avg Rank", "High: Avg Rank"
-  )])
-  friedman_avg_rank <- friedman.test(avg_ranks)
-  return(friedman_avg_rank)
+# friedman <- function(){
+#   avg_ranks <- as.matrix(cyclist_meta_sc_filtered[, c(
+#     "Plain: Avg Rank", "Medium: Avg Rank", "High: Avg Rank"
+#   )])
+#   friedman_avg_rank <- friedman.test(avg_ranks)
+#   return(friedman_avg_rank)
+# }
+# friedman_avg_rank <- friedman()
+
+
+## Test if any difference in GC between different clusters
+get_cluster_gc_info <- function(input, ref, 
+                                cluster_by = c("ranks", "speed2median"),
+                                method){
+  if (class(ref) == "list"){
+    by <- switch(match.arg(cluster_by), "ranks" = 1L, "speed2median" = 2L)
+    if (by == 1L) cluster <- ref$data$ranks$cluster
+    else if (by == 2L) cluster <- ref$data$speed2median$cluster
+  }
+  else if ("data.frame" %in% class(ref))
+    cluster <- ref$cluster
+  else if (class(ref) %in% c("integer", "numeric", "character", "factor"))
+    cluster <- ref
+  else
+    stop("Invalid reference data.")
+  
+  # Calculate valid number of individuals and averages
+  num_split <- split(input$`Grand Tour: Num`, cluster)
+  ranks_split <- split(input$`Grand Tour: Avg Rank`, cluster)
+  median_split <- split(input$`Grand Tour: Avg Avg Speed Rel to Median`, cluster)
+  general_info <- list('cluster by' = cluster_by, 
+                       'clustering method' = method,
+                       'total n' = 0L)
+  total_n <- 0L
+  for (name in names(ranks_split)){
+    n <- length(num_split[[name]])
+    total_n <- total_n + n
+    mean_rank <- mean(ranks_split[[name]])
+    mean_median <- mean(median_split[[name]])
+    general_info[[name]] <- list('n' = n,
+                                 'mean avg rank' = mean_rank,
+                                 'mean avg avg speed rel to median' = mean_median)
+  }
+  general_info$`total n` <- total_n
+  
+  # Test cluster-wise normality
+  ranks_sw_test <- lapply(ranks_split, shapiro.test)
+  median_sw_test <- lapply(median_split, shapiro.test)
+  
+  list('general info' = general_info,
+       'normality' = list('ranks' = ranks_sw_test, 'speed2median' = median_sw_test))
 }
-friedman_avg_rank <- friedman()
+ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
+                      nomatch = FALSE)
+ref <- grand_sc_normalize_kmeans$data$ranks$cluster[ref_matchrow]
+grand_gc_aggregate <- get_cluster_gc_info(input = grand_gc_fltrd,
+                                          ref = ref,
+                                          cluster_by = "ranks",
+                                          method = "kmeans")

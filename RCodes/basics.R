@@ -14,24 +14,28 @@ PLOT_DIR = paste(ROOT, "Plots", sep = "/")
 
 
 ## Automatically add aggregated information to existing data
-add_aggr <- function(input, ref, func){
+add_aggr <- function(input, 
+                     ref, 
+                     cluster_by = c("ranks", "speed2median"), 
+                     func){
   input <- add_order(input)
+  by = list(ref$data[[cluster_by]]$cluster)
   if (!"aggregate by norm cluster" %in% names(input)){
     aranks <- aggregate(input$data$ranks[, 2:4],
-                        by = list(ref$data$ranks$cluster),
+                        by = by,
                         FUN = func)
     amedian <- aggregate(input$data$speed2median[, 2:4],
-                         by = list(ref$data$speed2median$cluster),
+                         by = by,
                          FUN = func)
     input$`aggregate by norm cluster` <- list('ranks' = aranks,
                                               'speed2median' = amedian)
   }
   if (!"aggregate order by norm cluster" %in% names(input)){
     aoranks <- aggregate(input$data$ranks[,c("Plain order", "Medium order", "High order")],
-                         by = list(ref$data$ranks$cluster),
+                         by = by,
                          FUN = func)
     aomedian <- aggregate(input$data$speed2median[, c("Plain order", "Medium order", "High order")],
-                          by = list(ref$data$speed2median$cluster),
+                          by = by,
                           FUN = func)
     input$`aggregate order by norm cluster` <- list('ranks' = aoranks,
                                                     'speed2median' = aomedian)
@@ -128,7 +132,8 @@ filter_data <- function(input,
                         result_type='SC',
                         stage_class='profile',
                         cols=c(),
-                        limit=3){
+                        limit=3,
+                        low_adjust=TRUE){
   # The value of 'races_filter' can only be one of 'all'(default), 
   # 'grand_tour', 'other_multi', 'all_multi', and 'single'
   if (class(input) == 'character')
@@ -142,8 +147,8 @@ filter_data <- function(input,
         for (profile in PROFILES)
           cols <- append(cols, paste(profile, 'Num', sep = ': '))
       else
-        for (col_name in colnames(raw_data))
-          if ('Num' %in% col_name & (!'Total' %in% col_name))
+        for (col_name in colnames(filtered_data))
+          if (grepl('Num', col_name) & !grepl('Total', col_name))
             cols <- append(cols, col_name)
     }
     else if (races_filter == 'all')
@@ -155,7 +160,16 @@ filter_data <- function(input,
   }
   # Filter by every column in cols with the lower limit
   for (col in cols){
-    filtered_data <- filtered_data[c(filtered_data[col] >= limit), ]
+    max_occur <- max(filtered_data[[col]])
+    if (max_occur == 0)
+      warning("Nobody finished a stage of ", col)
+    else if (low_adjust & max_occur < 10*limit){
+      filtered_data <- filtered_data[c(filtered_data[col] >= ceiling(max_occur / 10)), ]
+      warning("The maximum of ", col, " was only ", max_occur,
+              ". Threshold re-adjusted to ", ceiling(max_occur / 10))
+    }
+    else
+      filtered_data <- filtered_data[c(filtered_data[col] >= limit), ]
   }
   save.image()
   return(filtered_data)
@@ -167,6 +181,16 @@ if (RELOAD){
   # all_multi_sc_fltrd <- filter_data(races_filter = 'all_multi')
   # single_sc_fltrd <- filter_data(races_filter = 'single')
 }
+# grand_sc_by_speedinterval_fltrd <- filter_data(
+#   input = "F:/Documents/Li/Master'sThesis/Data/Cyclist_Meta/SC_by_median_speed_interval/cyclist_meta_merged_grand_tour_SC.csv",
+#   races_filter = "grand_tour",
+#   result_type = "SC",
+#   stage_class = "speed interval")
+# grand_sc_by_speedquantile0.25_fltrd <- filter_data(
+#   input = "F:/Documents/Li/Master'sThesis/Data/Cyclist_Meta/SC_by_median_speed_quantile/cyclist_meta_merged_grand_tour_SC.csv",
+#   races_filter = "grand_tour",
+#   result_type = "SC",
+#   stage_class = "speed quantile")
 
 
 vector_magnitude <- function(vec){

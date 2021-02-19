@@ -19,7 +19,13 @@ add_aggr <- function(input,
                      cluster_by = c("ranks", "speed2median"), 
                      func){
   input <- add_order(input)
-  by = list(ref$data[[cluster_by]]$cluster)
+  if (match('list', class(ref), nomatch = FALSE))
+    by = list(ref$data[[cluster_by]]$cluster)
+  else if ("data.frame" %in% class(ref))
+    by = list(ref$cluster)
+  else if (class(ref) %in% c("integer", "numeric", "character",
+                             "factor"))
+    by = list(ref)
   if (!"aggregate by norm cluster" %in% names(input)){
     aranks <- aggregate(input$data$ranks[, 2:4],
                         by = by,
@@ -48,12 +54,12 @@ add_order <- function(input){
   if (!"Plain order" %in% colnames(input$data$ranks)){
     for (i in 1:nrow(input$data$ranks))
       input$data$ranks[i, c("Plain order", "Medium order", "High order")] <- 
-        rank(input$data$ranks[i, 2:4])
+        as.numeric(rank(input$data$ranks[i, 2:4]))
   }
   if (!"Plain order" %in% colnames(input$data$speed2median)){
     for (i in 1:nrow(input$data$speed2median))
       input$data$speed2median[i, c("Plain order", "Medium order", "High order")] <- 
-        rank(input$data$speed2median[i, 2:4])
+        as.numeric(rank(input$data$speed2median[i, 2:4]))
   }
   return(input)
 }
@@ -136,7 +142,8 @@ filter_data <- function(input,
                         low_adjust=TRUE){
   # The value of 'races_filter' can only be one of 'all'(default), 
   # 'grand_tour', 'other_multi', 'all_multi', and 'single'
-  if (class(input) == 'character')
+  if ((length(class(input)) == 1 & class(input) == 'character') |
+      ('character' %in% class(input)))
     filtered_data <- read_csv(input)
   else if ('data.frame' %in% class(input))
     filtered_data <- input

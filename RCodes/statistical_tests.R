@@ -103,9 +103,10 @@ source('basics.R')
 
 ## Test if any difference in GC between different clusters
 get_cluster_gc_info <- function(input, ref, 
+                                races_filter = 'grand_tour',
                                 cluster_by = c("ranks", "speed2median"),
                                 method){
-  if (class(ref) == "list"){
+  if (match("list", class(ref), nomatch = FALSE)){
     by <- switch(match.arg(cluster_by), "ranks" = 1L, "speed2median" = 2L)
     if (by == 1L) cluster <- ref$data$ranks$cluster
     else if (by == 2L) cluster <- ref$data$speed2median$cluster
@@ -118,9 +119,16 @@ get_cluster_gc_info <- function(input, ref,
     stop("Invalid reference data.")
   
   # Calculate valid number of individuals and averages
-  num_split <- split(input$`Grand Tour: Num`, cluster)
-  ranks_split <- split(input$`Grand Tour: Avg Rank`, cluster)
-  median_split <- split(input$`Grand Tour: Avg Avg Speed Rel to Median`, cluster)
+  if (races_filter == 'all')
+    prefix <- 'Total'
+  else
+    prefix <- all_capitalize(races_filter)
+  cols <- c()
+  for (field in c('Num', 'Avg Rank', 'Avg Avg Speed Rel to Median'))
+    cols <- append(cols, paste(prefix, field, sep = ': '))
+  num_split <- split(input[[cols[1]]], cluster)
+  ranks_split <- split(input[[cols[2]]], cluster)
+  median_split <- split(input[[cols[3]]], cluster)
   general_info <- list('cluster by' = cluster_by, 
                        'clustering method' = method,
                        'total n' = 0L)
@@ -143,10 +151,10 @@ get_cluster_gc_info <- function(input, ref,
   list('general info' = general_info,
        'normality' = list('ranks' = ranks_sw_test, 'speed2median' = median_sw_test))
 }
-ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
-                      nomatch = FALSE)
-ref <- grand_sc_normalize_kmeans$data$ranks$cluster[ref_matchrow]
-grand_gc_aggregate <- get_cluster_gc_info(input = grand_gc_fltrd,
-                                          ref = ref,
-                                          cluster_by = "ranks",
-                                          method = "kmeans")
+# ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
+#                       nomatch = FALSE)
+# ref <- grand_sc_normalize_kmeans$data$ranks$cluster[ref_matchrow]
+# grand_gc_aggregate <- get_cluster_gc_info(input = grand_gc_fltrd,
+#                                           ref = ref,
+#                                           cluster_by = "ranks",
+#                                           method = "kmeans")

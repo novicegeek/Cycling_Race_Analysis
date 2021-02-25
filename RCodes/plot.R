@@ -32,10 +32,11 @@ get_melt_info <- function(input,
     var_name <- 'races'
   }
   # Extract the columns needed
-  if ('cluster' %in% colnames(input))
+  if (is.null(ref) & 'cluster' %in% colnames(input))
     to_melt_df <- input[, append(melt_cols, 'cluster')]
-  else
+  else if (!is.null(ref))
     to_melt_df <- cbind(input[, append('ID', melt_cols)], list('cluster' = ref))
+  else stop("No reference clusters information.")
   # Melt
   melt_df <- reshape2::melt(to_melt_df, id.vars = c('ID', 'cluster'),
                             measure.vars = melt_cols[!melt_cols %in% c('ID', 'cluster')], 
@@ -60,6 +61,7 @@ auto_plot <- function(data,
                       error_bar = TRUE,
                       file_name,
                       file_type = "png",
+                      low_res = NULL,
                       ...){
   arrow_angle = 22.5
   bar_width = 0.5
@@ -69,6 +71,7 @@ auto_plot <- function(data,
   plot_height = 3600L
   ytick_limit = 0.05
   ytrunc_limit = 0.1
+  if (is.null(low_res)) low_res <- 1
   data_count <- summarySE(data, measurevar = value_name, 
                           groupvars = c('cluster', var_name), na.rm = TRUE)
   if (value_name == "value"){
@@ -127,17 +130,39 @@ auto_plot <- function(data,
     intrvl_res <- dis_to_low[[1]]
     y_lower_lim <- min(data_count[[value_name]]) %/% intrvl_res * intrvl_res
     y_lower_lim <- if (dis_to_low[[2]]) y_lower_lim - intrvl_res else y_lower_lim
-    ybreaks <- seq(y_lower_lim, max(data[[value_name]]), intrvl_res/2)
+    breaks_to <- max(data[[value_name]]) * expand_coef_global
+    breaks_by <- intrvl_res/2
+    # ybreaks <- seq(y_lower_lim, max(data[[value_name]]), intrvl_res/2)
   }
-  else if (max(data_count[[value_name]] + data_count$sd) <= 1)
-    ybreaks <- seq(0, 1, 0.2)
-  else if (max(data_count[[value_name]] + data_count$sd) <= 2)
-    ybreaks <- seq(0, max(data[[value_name]]), 0.2)
-  else if (max(data_count[[value_name]] + data_count$sd) <= 100)
-    ybreaks <- seq(0, max(data[[value_name]]), 20)
-  else
-    ybreaks <- seq(0, max(data[[value_name]]), 50)
+  else if (max(data_count[[value_name]] + data_count$sd) <= 1){
+    breaks_to <- 1
+    breaks_by <- 0.2
+  }
+    # ybreaks <- seq(0, 1, 0.2)
+  else{
+    breaks_to <- max(data[[value_name]]) * expand_coef_global
+    bar_upper_lim <- max(data_count[[value_name]] + data_count$sd)
+    breaks_by <- sapply(bar_upper_lim, function(x){
+      if (x <= 2) 0.2
+      else if (x <= 20) 5
+      else if (x <= 50) 10
+      else if (x <= 100) 20
+      else if (x <= 200) 40
+      else 50
+    })
+  }
+  # else if (max(data_count[[value_name]] + data_count$sd) <= 2)
+  #   ybreaks <- seq(0, max(data[[value_name]]), 0.2)
+  # else if (max(data_count[[value_name]] + data_count$sd) <= 20)
+  #   ybreaks <- seq(0, max(data[[value_name]]), 5)
+  # else if (max(data_count[[value_name]] + data_count$sd) <= 50)
+  #   ybreaks <- seq(0, max(data[[value_name]]), 10)
+  # else if (max(data_count[[value_name]] + data_count$sd) <= 100)
+  #   ybreaks <- seq(0, max(data[[value_name]]), 20)
+  # else
+  #   ybreaks <- seq(0, max(data[[value_name]]), 50)
   y_lower_lim <- if (is.null(y_lower_lim)) 0 else y_lower_lim
+  ybreaks <- seq(y_lower_lim, breaks_to, breaks_by)
   # Set y-axis attribute: upper limit, adjust the breaks
   rightclust <- filter(data_count, cluster == max(data_count$cluster))
   rightclust_upper_expand <- 
@@ -171,16 +196,16 @@ auto_plot <- function(data,
             element_line("black", 
                          arrow = arrow(angle = arrow_angle, length = unit(10, "bigpts"), 
                                        ends = "last", type = "closed")),
-          axis.text.x = element_text(size = 15, color = "black"),
-          axis.text.y = element_text(size = 15, color = "black"),
-          axis.title.x = element_text(face = "bold", size = 17),
-          axis.title.y = element_text(face = "bold", size = 17),
+          axis.text.x = element_text(size = 17, color = "black"),
+          axis.text.y = element_text(size = 17, color = "black"),
+          axis.title.x = element_text(face = "bold", size = 19),
+          axis.title.y = element_text(face = "bold", size = 19),
           legend.background = element_rect(colour = "black"),
           # legend.box.spacing = unit(3, "bigpts"),
-          legend.margin = margin(0, -15, 5, 5),
+          legend.margin = margin(2, -13, 7, 7),
           # legend.key = element_rect(fill = "white", colour = "black", size = 0.2/72*25.4),
           legend.position = c(0.85, 0.90),
-          legend.text = element_text(size = 13),
+          legend.text = element_text(size = 16),
           legend.title = element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
@@ -192,6 +217,7 @@ auto_plot <- function(data,
   # Print and save the plot with the assigned directory and file name
   show(p)
   save_dir <- paste(SAVE_ROOT, paste(type, 'plot', sep = '_'), sep = '/')
+  if (!low_res == 1) save_dir <- paste0(save_dir, '_', as.character(low_res), 'res')
   if (!dir.exists(save_dir)) dir.create(save_dir)
   file_path <- paste(save_dir, paste(file_name, file_type, sep = '.'), sep = '/')
   if (file.exists(file_path)) file.remove(file_path)
@@ -202,83 +228,263 @@ auto_plot <- function(data,
   #        "png" = png(file_path, width = 1280, height = 1280, res = 144),
   #        "tif" = tiff(file_path, width = 1280, height = 1280, res = 144),
   #        "tiff" = tiff(file_path, width = 1280, height = 1280, res = 144))
-  dev.print(png, file_path, width = plot_width, height = plot_height, res = 600)
+  dev.print(png, file_path, width = plot_width*low_res, height = plot_height*low_res, res = 600*low_res)
   dev.off()
   return(p)
 }
 
 if (FALSE){
+  LOW_RES = 0.5
+  ### 大环赛的图片
   ## 平均单赛段排名
-  # grand_sc_avg_ranks_melt <-
-  #   get_melt_info(grand_sc_fltrd, criterion = "avg", var = "ranks",
+  grand_sc_avg_ranks_melt <-
+    get_melt_info(grand_sc_fltrd, criterion = "avg", var = "ranks",
+                  ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化排名
+  # grand_sc_norm_avg_ranks_melt <-
+  #   get_melt_info(grand_sc_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
   #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_avg_ranks_melt$data, value_type = "ranks", 
-  #                criterion = "avg", type = "bar", 
-  #                file_name = "grand_sc_kmeans_avg_ranks", file_type = "png")
-  # ## 平均单赛段标准化排名
-  # # grand_sc_norm_avg_ranks_melt <- 
-  # #   get_melt_info(grand_sc_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
-  # #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_norm_avg_ranks_melt$data, value_type = "ranks", 
-  #                criterion = "avg", normalized = TRUE, type = "bar", 
-  #                file_name = "grand_sc_kmeans_norm_avg_ranks", file_type = "png")
+  p <- auto_plot(grand_sc_norm_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_kmeans_norm_avg_ranks", file_type = "png", low_res = LOW_RES)
   ## 最佳单赛段排名
-  # grand_sc_best_ranks_melt <-
-  #   get_melt_info(grand_sc_fltrd, criterion = "best", var = "ranks",
-  #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_best_ranks_melt$data, value_type = "ranks",
-  #                criterion = "best", type = "bar",
-  #                file_name = "grand_sc_kmeans_best_ranks", file_type = "png")
-  # 
-  # ## 平均单赛段均速
-  # # grand_sc_avg_speed2median_melt <-
-  # #   get_melt_info(grand_sc_fltrd, criterion = "avg", var = "speed2median",
-  # #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_avg_speed2median_melt$data, value_type = "speed2median",
-  #                criterion = "avg", type = "bar",
-  #                file_name = "grand_sc_kmeans_avg_speed2median", file_type = "png")
+  grand_sc_best_ranks_melt <-
+    get_melt_info(grand_sc_fltrd, criterion = "best", var = "ranks",
+                  ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_best_ranks_melt$data, value_type = "ranks",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+
+  ## 平均单赛段均速
+  grand_sc_avg_speed2median_melt <-
+    get_melt_info(grand_sc_fltrd, criterion = "avg", var = "speed2median",
+                  ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
   ## 平均单赛段标准化均速
-  # grand_sc_norm_avg_speed2median_melt <-
-  #   get_melt_info(grand_sc_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
-  #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_norm_avg_speed2median_melt$data, value_type = "speed2median",
-  #                criterion = "avg", normalized = TRUE, type = "bar",
-  #                file_name = "grand_sc_kmeans_norm_avg_speed2median", file_type = "png")
+  grand_sc_norm_avg_speed2median_melt <-
+    get_melt_info(grand_sc_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
+                  ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_norm_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_kmeans_norm_avg_speed2median", file_type = "png", low_res = LOW_RES)
   ## 最佳单赛段均速
-  # grand_sc_best_speed2median_melt <-
-  #   get_melt_info(grand_sc_fltrd, criterion = "best", var = "speed2median",
-  #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
-  # p <- auto_plot(grand_sc_best_speed2median_melt$data, value_type = "speed2median",
-  #                criterion = "best", type = "bar",
-  #                file_name = "grand_sc_kmeans_best_speed2median", file_type = "png")
+  grand_sc_best_speed2median_melt <-
+    get_melt_info(grand_sc_fltrd, criterion = "best", var = "speed2median",
+                  ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_best_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
   
   ## 平均GC排名
-  # grand_gc_avg_ranks_melt <-
-  #   get_melt_info(grand_gc_fltrd, criterion = "avg", var = "ranks",
-  #                 races_filter = "grand_tour")
-  # p <- auto_plot(grand_gc_avg_ranks_melt$data, var_name = "races", is_gc = TRUE,
-  #                value_type = "ranks", criterion = "avg", type = "bar",
-  #                file_name = "grand_gc_kmeans_avg_ranks", file_type = "png")
+  grand_gc_avg_ranks_melt <-
+    get_melt_info(grand_gc_fltrd, criterion = "avg", var = "ranks",
+                  races_filter = "grand_tour")
+  p <- auto_plot(grand_gc_avg_ranks_melt$data, var_name = "races", is_gc = TRUE,
+                 value_type = "ranks", criterion = "avg", type = "bar",
+                 file_name = "grand_gc_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
   ## 最佳GC排名
   grand_gc_best_ranks_melt <-
     get_melt_info(grand_gc_fltrd, criterion = "best", var = "ranks",
                   races_filter = "grand_tour")
   p <- auto_plot(grand_gc_best_ranks_melt$data, var_name = "races", is_gc = TRUE,
                  value_type = "ranks", criterion = "best", type = "bar",
-                 file_name = "grand_gc_kmeans_best_ranks", file_type = "png")
+                 file_name = "grand_gc_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
   ## 平均全程均速
   grand_gc_avg_speed2median_melt <-
     get_melt_info(grand_gc_fltrd, criterion = "avg", var = "speed2median",
                   races_filter = "grand_tour")
   p <- auto_plot(grand_gc_avg_speed2median_melt$data, var_name = "races", is_gc = TRUE,
                  value_type = "speed2median", criterion = "avg", type = "bar",
-                 file_name = "grand_gc_kmeans_avg_speed2median", file_type = "png")
+                 file_name = "grand_gc_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
   ## 最佳全程均速
   grand_gc_best_speed2median_melt <-
     get_melt_info(grand_gc_fltrd, criterion = "best", var = "speed2median",
                   races_filter = "grand_tour")
   p <- auto_plot(grand_gc_best_speed2median_melt$data, var_name = "races", is_gc = TRUE,
                  value_type = "speed2median", criterion = "best", type = "bar",
-                 file_name = "grand_gc_kmeans_best_speed2median", file_type = "png")
+                 file_name = "grand_gc_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
+  
+  ### 其他多日赛的图片
+  ## 平均单赛段排名
+  other_multi_sc_avg_ranks_melt <-
+    get_melt_info(other_multi_sc_fltrd_matched, criterion = "avg", var = "ranks")
+  p <- auto_plot(other_multi_sc_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", type = "bar",
+                 file_name = "other_multi_sc_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段排名
+  other_multi_sc_best_ranks_melt <-
+    get_melt_info(other_multi_sc_fltrd_matched, criterion = "best", var = "ranks")
+  p <- auto_plot(other_multi_sc_best_ranks_melt$data, value_type = "ranks",
+                 criterion = "best", type = "bar",
+                 file_name = "other_multi_sc_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段均速
+  other_multi_sc_avg_speed2median_melt <-
+    get_melt_info(other_multi_sc_fltrd_matched, criterion = "avg", var = "speed2median")
+  p <- auto_plot(other_multi_sc_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", type = "bar",
+                 file_name = "other_multi_sc_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段均速
+  other_multi_sc_best_speed2median_melt <-
+    get_melt_info(other_multi_sc_fltrd_matched, criterion = "best", var = "speed2median")
+  p <- auto_plot(other_multi_sc_best_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "best", type = "bar",
+                 file_name = "other_multi_sc_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
+
+  ## 平均GC排名
+  other_multi_gc_avg_ranks_melt <-
+    get_melt_info(other_multi_gc_fltrd_matched, criterion = "avg", var = "ranks",
+                  races_filter = "other_multi")
+  p <- auto_plot(other_multi_gc_avg_ranks_melt$data, var_name = "races", is_gc = TRUE,
+                 value_type = "ranks", criterion = "avg", type = "bar",
+                 file_name = "other_multi_gc_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 最佳GC排名
+  other_multi_gc_best_ranks_melt <-
+    get_melt_info(other_multi_gc_fltrd_matched, criterion = "best", var = "ranks",
+                  races_filter = "other_multi")
+  p <- auto_plot(other_multi_gc_best_ranks_melt$data, var_name = "races", is_gc = TRUE,
+                 value_type = "ranks", criterion = "best", type = "bar",
+                 file_name = "other_multi_gc_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均全程均速
+  other_multi_gc_avg_speed2median_melt <-
+    get_melt_info(other_multi_gc_fltrd_matched, criterion = "avg", var = "speed2median",
+                  races_filter = "other_multi")
+  p <- auto_plot(other_multi_gc_avg_speed2median_melt$data, var_name = "races", is_gc = TRUE,
+                 value_type = "speed2median", criterion = "avg", type = "bar",
+                 file_name = "other_multi_gc_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 最佳全程均速
+  other_multi_gc_best_speed2median_melt <-
+    get_melt_info(other_multi_gc_fltrd_matched, criterion = "best", var = "speed2median",
+                  races_filter = "other_multi")
+  p <- auto_plot(other_multi_gc_best_speed2median_melt$data, var_name = "races", is_gc = TRUE,
+                 value_type = "speed2median", criterion = "best", type = "bar",
+                 file_name = "other_multi_gc_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
+  
+  ### 大环赛GC排名前10%车手的图片
+  ## 平均单赛段排名
+  grand_sc_top10percent_avg_ranks_melt <-
+    get_melt_info(grand_sc_top10percent_gc, criterion = "avg", var = "ranks")
+  p <- auto_plot(grand_sc_top10percent_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化排名
+  grand_sc_top10percent_norm_avg_ranks_melt <-
+    get_melt_info(grand_sc_top10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
+                  ref = grand_sc_top10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_top10percent_norm_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_norm_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段排名
+  grand_sc_top10percent_best_ranks_melt <-
+    get_melt_info(grand_sc_top10percent_gc, criterion = "best", var = "ranks")
+  p <- auto_plot(grand_sc_top10percent_best_ranks_melt$data, value_type = "ranks",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+
+  ## 平均单赛段均速
+  grand_sc_top10percent_avg_speed2median_melt <-
+    get_melt_info(grand_sc_top10percent_gc, criterion = "avg", var = "speed2median")
+  p <- auto_plot(grand_sc_top10percent_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化均速
+  grand_sc_top10percent_norm_avg_speed2median_melt <-
+    get_melt_info(grand_sc_top10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
+                  ref = grand_sc_top10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_top10percent_norm_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_norm_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段均速
+  grand_sc_top10percent_best_speed2median_melt <-
+    get_melt_info(grand_sc_top10percent_gc, criterion = "best", var = "speed2median")
+  p <- auto_plot(grand_sc_top10percent_best_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_top10percent_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
+  
+  ### 大环赛GC排名中间10%车手的图片
+  ## 平均单赛段排名
+  grand_sc_mid10percent_avg_ranks_melt <-
+    get_melt_info(grand_sc_mid10percent_gc, criterion = "avg", var = "ranks")
+  p <- auto_plot(grand_sc_mid10percent_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化排名
+  grand_sc_mid10percent_norm_avg_ranks_melt <-
+    get_melt_info(grand_sc_mid10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
+                  ref = grand_sc_mid10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_mid10percent_norm_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_norm_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段排名
+  grand_sc_mid10percent_best_ranks_melt <-
+    get_melt_info(grand_sc_mid10percent_gc, criterion = "best", var = "ranks")
+  p <- auto_plot(grand_sc_mid10percent_best_ranks_melt$data, value_type = "ranks",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+
+  ## 平均单赛段均速
+  grand_sc_mid10percent_avg_speed2median_melt <-
+    get_melt_info(grand_sc_mid10percent_gc, criterion = "avg", var = "speed2median")
+  p <- auto_plot(grand_sc_mid10percent_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化均速
+  grand_sc_mid10percent_norm_avg_speed2median_melt <-
+    get_melt_info(grand_sc_mid10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
+                  ref = grand_sc_mid10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_mid10percent_norm_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_norm_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段均速
+  grand_sc_mid10percent_best_speed2median_melt <-
+    get_melt_info(grand_sc_mid10percent_gc, criterion = "best", var = "speed2median")
+  p <- auto_plot(grand_sc_mid10percent_best_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_mid10percent_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
+  
+  ### 大环赛GC排名后10%车手的图片
+  ## 平均单赛段排名
+  grand_sc_bottom10percent_avg_ranks_melt <-
+    get_melt_info(grand_sc_bottom10percent_gc, criterion = "avg", var = "ranks")
+  p <- auto_plot(grand_sc_bottom10percent_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化排名
+  grand_sc_bottom10percent_norm_avg_ranks_melt <-
+    get_melt_info(grand_sc_bottom10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
+                  ref = grand_sc_bottom10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_bottom10percent_norm_avg_ranks_melt$data, value_type = "ranks",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_norm_avg_ranks", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段排名
+  grand_sc_bottom10percent_best_ranks_melt <-
+    get_melt_info(grand_sc_bottom10percent_gc, criterion = "best", var = "ranks")
+  p <- auto_plot(grand_sc_bottom10percent_best_ranks_melt$data, value_type = "ranks",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_best_ranks", file_type = "png", low_res = LOW_RES)
+
+  ## 平均单赛段均速
+  grand_sc_bottom10percent_avg_speed2median_melt <-
+    get_melt_info(grand_sc_bottom10percent_gc, criterion = "avg", var = "speed2median")
+  p <- auto_plot(grand_sc_bottom10percent_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 平均单赛段标准化均速
+  grand_sc_bottom10percent_norm_avg_speed2median_melt <-
+    get_melt_info(grand_sc_bottom10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
+                  ref = grand_sc_bottom10percent_normalize_kmeans$`k-means model`$ranks$cluster)
+  p <- auto_plot(grand_sc_bottom10percent_norm_avg_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "avg", normalized = TRUE, type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_norm_avg_speed2median", file_type = "png", low_res = LOW_RES)
+  ## 最佳单赛段均速
+  grand_sc_bottom10percent_best_speed2median_melt <-
+    get_melt_info(grand_sc_bottom10percent_gc, criterion = "best", var = "speed2median")
+  p <- auto_plot(grand_sc_bottom10percent_best_speed2median_melt$data, value_type = "speed2median",
+                 criterion = "best", type = "bar",
+                 file_name = "grand_sc_bottom10percent_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
 }
 

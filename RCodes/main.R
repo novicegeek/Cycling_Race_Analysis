@@ -244,6 +244,84 @@ if (FALSE){
     grand_sc_mid10percent_normalize_kmeans$data$ranks$cluster
   grand_sc_bottom10percent_gc$cluster <- 
     grand_sc_bottom10percent_normalize_kmeans$data$ranks$cluster
+  
+  # Filter those in other_multi data from grand data
+  grand_other_multi_match <- list()
+  grand_other_multi_match$grand_sc_matched <- 
+    dplyr::filter(grand_sc_fltrd, ID %in% other_multi_sc_fltrd_matched$ID)
+  grand_other_multi_match$other_multi_sc_matched <- other_multi_sc_fltrd_matched
+  grand_other_multi_match$grand_gc_matched <- 
+    dplyr::filter(grand_gc_fltrd, ID %in% other_multi_gc_fltrd_matched$ID)
+  grand_other_multi_match$other_multi_gc_matched <- other_multi_gc_fltrd_matched
+  for (i in 1:nrow(grand_other_multi_match$grand_sc_matched)){
+    match_row <- pmatch(grand_other_multi_match$grand_sc_matched$ID[i], 
+                        grand_other_multi_match$other_multi_sc_matched$ID)
+    grand_other_multi_match$grand_sc_matched[i, 'cluster'] <- 
+      grand_other_multi_match$other_multi_sc_matched$cluster[match_row]
+  }
+  # Get the difference between other_multi and grand for the same group of cyclists 
+  grand_other_multi_match$sc_other_multi_minus_grand <- grand_other_multi_match$other_multi_sc_matched[, 1:3]
+  grand_other_multi_match$gc_other_multi_minus_grand <- grand_other_multi_match$other_multi_gc_matched[, 1:3]
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median")){
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        grand_other_multi_match$sc_other_multi_minus_grand[col_name] <- 
+          grand_other_multi_match$other_multi_sc_matched[col_name] - 
+          grand_other_multi_match$grand_sc_matched[col_name]
+      }
+      col_name <- paste(criterion, field)
+      grand_col_name <- paste("Grand Tour", paste(criterion, field), sep = ": ")
+      other_col_name <- paste("Other Multi", paste(criterion, field), sep = ": ")
+      grand_other_multi_match$gc_other_multi_minus_grand[col_name] <- 
+        grand_other_multi_match$other_multi_gc_matched[other_col_name] - 
+        grand_other_multi_match$grand_gc_matched[grand_col_name]
+    }
+  grand_other_multi_match$sc_other_multi_minus_grand$cluster <- 
+    grand_other_multi_match$other_multi_sc_matched$cluster
+  grand_other_multi_match$gc_other_multi_minus_grand$cluster <- 
+    grand_other_multi_match$other_multi_gc_matched$cluster
+  # Get summary of the difference
+  diff_summary <- list('sc' = list(), 'gc' = list())
+  for (col_name in colnames(grand_other_multi_match$sc_other_multi_minus_grand)[4:15])
+    diff_summary$sc[[col_name]] <- 
+    summarySE(grand_other_multi_match$sc_other_multi_minus_grand[, c(4:16)], 
+              measurevar = col_name,
+              groupvars = "cluster")
+  for (col_name in colnames(grand_other_multi_match$gc_other_multi_minus_grand[4:7]))
+    diff_summary$gc[[col_name]] <- 
+    summarySE(grand_other_multi_match$gc_other_multi_minus_grand[, c(4:8)], 
+              measurevar = col_name,
+              groupvars = "cluster")
+    
+  
+  # Get the rank quantiles (rank_norm) for grand and other_multi data
+  rank_norm_summary <- list('grand' = list('sc' = list(), 'gc' = list()), 
+                            'other_multi' = list('sc' = list(), 'gc' = list()))
+  # Do for the grand
+  for (criterion in c("Avg", "Best")){
+    for (profile in PROFILES){
+      col_name <- paste(profile, paste(criterion, "Rank_Norm"), sep = ": ")
+      rank_norm_summary$grand$sc[[col_name]] <- 
+        summarySE(cbind(grand_sc_fltrd, 
+                        list('cluster' = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)), 
+                  measurevar = col_name, groupvars = "cluster")
+    }
+    col_name <- paste("Grand Tour", paste(criterion, "Rank_Norm"), sep = ": ")
+    rank_norm_summary$grand$gc[[col_name]] <- 
+      summarySE(grand_gc_fltrd, measurevar = col_name, groupvars = "cluster")
+  }
+  # Do for the other_multi
+  for (criterion in c("Avg", "Best")){
+    for (profile in PROFILES){
+      col_name <- paste(profile, paste(criterion, "Rank_Norm"), sep = ": ")
+      rank_norm_summary$other_multi$sc[[col_name]] <- 
+        summarySE(other_multi_sc_fltrd_matched, measurevar = col_name, groupvars = "cluster")
+    }
+    col_name <- paste("Other Multi", paste(criterion, "Rank_Norm"), sep = ": ")
+    rank_norm_summary$other_multi$gc[[col_name]] <- 
+      summarySE(other_multi_gc_fltrd_matched, measurevar = col_name, groupvars = "cluster")
+  }
 }
 
 

@@ -151,10 +151,82 @@ get_cluster_gc_info <- function(input, ref,
   list('general info' = general_info,
        'normality' = list('ranks' = ranks_sw_test, 'speed2median' = median_sw_test))
 }
-# ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
-#                       nomatch = FALSE)
-# ref <- grand_sc_normalize_kmeans$data$ranks$cluster[ref_matchrow]
-# grand_gc_aggregate <- get_cluster_gc_info(input = grand_gc_fltrd,
-#                                           ref = ref,
-#                                           cluster_by = "ranks",
-#                                           method = "kmeans")
+
+
+if (FALSE){
+  # ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
+  #                       nomatch = FALSE)
+  # ref <- grand_sc_normalize_kmeans$data$ranks$cluster[ref_matchrow]
+  # grand_gc_aggregate <- get_cluster_gc_info(input = grand_gc_fltrd,
+  #                                           ref = ref,
+  #                                           cluster_by = "ranks",
+  #                                           method = "kmeans")
+  
+  # This is unpaired test, i.e. the numbers of cyclists in other_multi and 
+  # in grand are not equal
+  # Test of normality for grand_sc data
+  normality_sw_pvals <- list('grand_sc' = data.frame(list('cluster' = 1:3)))
+  split_df <- split.data.frame(grand_sc_fltrd, grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median"))
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        for (cluster in 1:3)
+          normality_sw_pvals$grand_sc[cluster, col_name] <- 
+            round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+      }
+  # Test of normality for grand_gc data
+  normality_sw_pvals$grand_gc <- data.frame(list('cluster' = 1:3))
+  split_df <- split.data.frame(grand_gc_fltrd, grand_gc_fltrd$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median")){
+      col_name <- paste('Grand Tour', paste(criterion, field), sep = ": ")
+      for (cluster in 1:3)
+        normality_sw_pvals$grand_gc[cluster, col_name] <- 
+          round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+    }
+  # Test of normality for other_multi_sc data
+  normality_sw_pvals$other_multi_sc <- data.frame(list('cluster' = 1:3))
+  split_df <- split.data.frame(other_multi_sc_fltrd_matched, other_multi_sc_fltrd_matched$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median"))
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        for (cluster in 1:3)
+          normality_sw_pvals$other_multi_sc[cluster, col_name] <- 
+            round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+      }
+  # Test of normality for other_multi_gc data
+  normality_sw_pvals$other_multi_gc <- data.frame(list('cluster' = 1:3))
+  split_df <- split.data.frame(other_multi_gc_fltrd_matched, other_multi_gc_fltrd_matched$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median")){
+      col_name <- paste('Other Multi', paste(criterion, field), sep = ": ")
+      for (cluster in 1:3)
+        normality_sw_pvals$other_multi_gc[cluster, col_name] <- 
+          round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+    }
+  
+  # Paired results of normality
+  normality_sw_pvals$both_normal_sc <- data.frame(list('cluster' = 1:3))
+  for (i in 1:3)
+    for (col_name in colnames(normality_sw_pvals$grand_sc)[2:13])
+      normality_sw_pvals$both_normal_sc[i, col_name] <-
+    as.integer(normality_sw_pvals$grand_sc[i, col_name] >= 0.05 & 
+                 normality_sw_pvals$other_multi_sc[i, col_name] >= 0.05)
+  normality_sw_pvals$both_normal_gc <- data.frame(list('cluster' = 1:3))
+  for (i in 1:3)
+    for (col_name_split in strsplit(colnames(normality_sw_pvals$grand_gc)[2:5], ": ")){
+      col_name <- col_name_split[2]
+      grand_col_name <- paste("Grand Tour", col_name, sep = ": ")
+      other_col_name <- paste("Other Multi", col_name, sep = ": ")
+      normality_sw_pvals$both_normal_gc[i, col_name] <-
+        as.integer(normality_sw_pvals$grand_gc[i, grand_col_name] >= 0.05 & 
+                     normality_sw_pvals$other_multi_gc[i, other_col_name] >= 0.05)
+    }
+  
+  # Do paired test
+      
+}
+
+

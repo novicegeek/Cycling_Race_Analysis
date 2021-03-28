@@ -1,5 +1,7 @@
 ## 载入需要的包
 require(car)
+require(effectsize)
+require(rcompanion)
 require(tidyverse)
 source('basics.R')
 
@@ -153,6 +155,49 @@ get_cluster_gc_info <- function(input, ref,
 }
 
 
+## Test the significance of difference between different groups of data
+test_paired_difference <- function(input, cluster_num, alpha = 0.05, is_normal = c(), 
+                                   field = c("Avg Rank", "Avg Avg Speed Rel to Median",
+                                             "Best Rank", "Best Avg Speed Rel to Median"),
+                                   write = FALSE){
+  if (!'cluster' %in% colnames(input)) stop("The input does not contain a column of clusters.")
+  output_str <- sprintf("========== Paired Test of difference for the %s of cluster %d ==========", field, cluster_num)
+  print(output_str)
+  if (write){
+    output_path <- "D:/PKU/LuLab/Master'sThesis/Data/StatisticalReports/test_paired_difference.txt"
+    write(output_str, file = output_path, append = TRUE, sep = "\n")
+  }
+  for (profile1 in 1:2)
+    for (profile2 in (profile1+1):3){
+      field1 <- paste(PROFILES[profile1], field, sep = ': ')
+      field2 <- paste(PROFILES[profile2], field, sep = ': ')
+      data1 <- dplyr::filter(input, cluster == cluster_num)[[field1]]
+      data2 <- dplyr::filter(input, cluster == cluster_num)[[field2]]
+      mean1 <- mean(data1)
+      mean2 <- mean(data2)
+      if (mean1 > mean2) alter <- "greater"
+      else if (mean1 < mean2) alter <- "less"
+      else alter <- "two.sided"
+      if (PROFILES[profile1] %in% is_normal && PROFILES[profile2] %in% is_normal){
+        test <- t.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
+        ES_ind <- "Cohen's d"
+        eff_size <- cohens_d(data1, data2, paired = TRUE)$Cohens_d
+      }
+      else{
+        test <- wilcox.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
+        ES_ind <- "Correlation (r)"
+        z <- wilcoxonZ(data1, data2, paired = TRUE, digits = 4)
+        eff_size <- z/sqrt(2*sum(complete.cases(data1, data2)))
+      }
+      output_str <- paste0(sprintf("%-40s", sprintf("Alternative: %s %s than %s", PROFILES[profile1], alter, PROFILES[profile2])),
+                           sprintf("%-19s", sprintf("p value: %f", test$p.value)),
+                           sprintf("ES: %f (%s)", eff_size, ES_ind))
+      print(output_str)
+      if (write)
+        write(output_str, file = output_path, append = TRUE, sep = "\n")
+    }
+}
+
 if (FALSE){
   # ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
   #                       nomatch = FALSE)
@@ -230,3 +275,40 @@ if (FALSE){
 }
 
 
+## For the test of difference
+if (FALSE){
+  whether_write <- TRUE
+  ## Performance in Grand Tours
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  
+  ## Performance in other multi-stage races
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Rank", write = whether_write)
+  
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+}

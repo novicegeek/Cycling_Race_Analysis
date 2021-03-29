@@ -1,4 +1,3 @@
-## 载入需要的包
 require(car)
 require(effectsize)
 require(rcompanion)
@@ -252,7 +251,7 @@ if (FALSE){
           round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
     }
   
-  # Paired results of normality
+  # Paired results of normality (to indicate whether a t test or non-parametric test should be used) 
   normality_sw_pvals$both_normal_sc <- data.frame(list('cluster' = 1:3))
   for (i in 1:3)
     for (col_name in colnames(normality_sw_pvals$grand_sc)[2:13])
@@ -270,7 +269,41 @@ if (FALSE){
                      normality_sw_pvals$other_multi_gc[i, other_col_name] >= 0.05)
     }
   
-  # Do paired test
+  # Test of normality for the top 10% cyclists
+  normality_sw_pvals$grand_top10percent_sc <- data.frame(list('cluster' = 1:2))
+  split_df <- split.data.frame(grand_sc_top10percent_gc, grand_sc_top10percent_gc$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median"))
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        for (cluster in 1:2)
+          normality_sw_pvals$grand_top10percent_sc[cluster, col_name] <- 
+            round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+      }
+  
+  # Test of normality for the mid 10% cyclists
+  normality_sw_pvals$grand_mid10percent_sc <- data.frame(list('cluster' = 1:3))
+  split_df <- split.data.frame(grand_sc_mid10percent_gc, grand_sc_mid10percent_gc$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median"))
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        for (cluster in 1:3)
+          normality_sw_pvals$grand_mid10percent_sc[cluster, col_name] <- 
+            round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+      }
+  
+  # Test of normality for the bottom 10% cyclists
+  normality_sw_pvals$grand_bottom10percent_sc <- data.frame(list('cluster' = 1:2))
+  split_df <- split.data.frame(grand_sc_bottom10percent_gc, grand_sc_bottom10percent_gc$cluster)
+  for (criterion in c("Avg", "Best"))
+    for (field in c("Rank", "Avg Speed Rel to Median"))
+      for (profile in PROFILES){
+        col_name <- paste(profile, paste(criterion, field), sep = ": ")
+        for (cluster in 1:2)
+          normality_sw_pvals$grand_bottom10percent_sc[cluster, col_name] <- 
+            round(shapiro.test(split_df[[cluster]][[col_name]])$`p.value`, 4)
+      }
       
 }
 
@@ -311,4 +344,47 @@ if (FALSE){
   test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
   test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
   test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  
+  ## Performance in top 10% grand gc cyclists
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  
+  ## Performance in mid 10% grand gc cyclists
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "High"), field = "Best Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Medium", "High"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  
+  ## Performance in bottom 10% grand gc cyclists
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
 }

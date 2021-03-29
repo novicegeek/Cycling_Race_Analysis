@@ -1,6 +1,7 @@
 source('basics.R')
 require(reshape2)
 require(Rmisc)
+require(stringr)
 Sys.setlocale("LC_CTYPE", "US")
 SAVE_ROOT = "F:/Documents/Li/Master'sThesis/Data/Plots"
 

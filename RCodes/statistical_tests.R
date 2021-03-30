@@ -3,6 +3,7 @@ require(effectsize)
 require(rcompanion)
 require(tidyverse)
 source('basics.R')
+WRITE <- TRUE
 
 
 # ## 检验正态性
@@ -154,49 +155,161 @@ get_cluster_gc_info <- function(input, ref,
 }
 
 
-## Test the significance of difference between different groups of data
+test_difference <- function(data1, data2, is_norm1, is_norm2, paired, alpha){
+  if (paired){
+    data1 <- data1[complete.cases(data1, data2)]
+    data2 <- data2[complete.cases(data1, data2)]
+  }
+  else{
+    data1 <- data1[is.finite(data1)]
+    data2 <- data2[is.finite(data2)]
+  }
+  if (missing(is_norm1) || missing(is_norm2)){
+    is_norm1 <- if (shapiro.test(data1)$`p.value` >= alpha) TRUE else FALSE
+    is_norm2 <- if (shapiro.test(data2)$`p.value` >= alpha) TRUE else FALSE
+  }
+  mean1 <- mean(data1)
+  mean2 <- mean(data2)
+  if (mean1 > mean2) alter <- "greater"
+  else if (mean1 < mean2) alter <- "less"
+  else alter <- "two.sided"
+  
+  if (is_norm1 && is_norm2){
+    test <- t.test(data1, data2, alternative = alter, paired = paired, conf.level = 1 - alpha)
+    ES_ind <- "Cohen's d"
+    eff_size <- cohens_d(data1, data2, paired = paired)$Cohens_d
+  }
+  else{
+    test <- wilcox.test(data1, data2, alternative = alter, paired = paired, conf.level = 1 - alpha)
+    ES_ind <- "Correlation (r)"
+    z <- wilcoxonZ(data1, data2, paired = paired, digits = 4)
+    n <- if (paired) (2 * length(data1)) else (length(data1) + length(data2))
+    eff_size <- z/sqrt(n)
+  }
+  
+  rlist <- list('test' = test, 'alternative' = alter, 'ES index' = ES_ind, 'effect size' = eff_size)
+  if (ES_ind == "Correlation (r)") rlist <- append(rlist, list('z' = z))
+  rlist
+}
+
+
+## Test the significance of difference between different (paired) groups of data
 test_paired_difference <- function(input, cluster_num, alpha = 0.05, is_normal = c(), 
                                    field = c("Avg Rank", "Avg Avg Speed Rel to Median",
                                              "Best Rank", "Best Avg Speed Rel to Median"),
                                    write = FALSE){
   if (!'cluster' %in% colnames(input)) stop("The input does not contain a column of clusters.")
-  output_str <- sprintf("========== Paired Test of difference for the %s of cluster %d ==========", field, cluster_num)
-  print(output_str)
-  if (write){
-    output_path <- "D:/PKU/LuLab/Master'sThesis/Data/StatisticalReports/test_paired_difference.txt"
-    write(output_str, file = output_path, append = TRUE, sep = "\n")
-  }
+  output_str <- sprintf("\n========== Paired Test of difference for the %s of cluster %d ==========", field, cluster_num)
+  output_path <- "D:/PKU/LuLab/Master'sThesis/Data/StatisticalReports/test_paired_difference.txt"
+  auto_output(output_str, output_path, write = write, if_append = TRUE)
   for (profile1 in 1:2)
     for (profile2 in (profile1+1):3){
       field1 <- paste(PROFILES[profile1], field, sep = ': ')
       field2 <- paste(PROFILES[profile2], field, sep = ': ')
       data1 <- dplyr::filter(input, cluster == cluster_num)[[field1]]
       data2 <- dplyr::filter(input, cluster == cluster_num)[[field2]]
-      mean1 <- mean(data1)
-      mean2 <- mean(data2)
-      if (mean1 > mean2) alter <- "greater"
-      else if (mean1 < mean2) alter <- "less"
-      else alter <- "two.sided"
-      if (PROFILES[profile1] %in% is_normal && PROFILES[profile2] %in% is_normal){
-        test <- t.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
-        ES_ind <- "Cohen's d"
-        eff_size <- cohens_d(data1, data2, paired = TRUE)$Cohens_d
-      }
-      else{
-        test <- wilcox.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
-        ES_ind <- "Correlation (r)"
-        z <- wilcoxonZ(data1, data2, paired = TRUE, digits = 4)
-        eff_size <- z/sqrt(2*sum(complete.cases(data1, data2)))
-      }
-      output_str <- paste0(sprintf("%-40s", sprintf("Alternative: %s %s than %s", PROFILES[profile1], alter, PROFILES[profile2])),
-                           sprintf("%-19s", sprintf("p value: %f", test$p.value)),
-                           sprintf("ES: %f (%s)", eff_size, ES_ind))
-      print(output_str)
-      if (write)
-        write(output_str, file = output_path, append = TRUE, sep = "\n")
+      # mean1 <- mean(data1)
+      # mean2 <- mean(data2)
+      # if (mean1 > mean2) alter <- "greater"
+      # else if (mean1 < mean2) alter <- "less"
+      # else alter <- "two.sided"
+      is_norm1 <- if (PROFILES[profile1] %in% is_normal) TRUE else FALSE
+      is_norm2 <- if (PROFILES[profile2] %in% is_normal) TRUE else FALSE
+      result <- test_difference(data1, data2, is_norm1, is_norm2, paired = TRUE, alpha)
+      # if (PROFILES[profile1] %in% is_normal && PROFILES[profile2] %in% is_normal){
+      #   test <- t.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
+      #   ES_ind <- "Cohen's d"
+      #   eff_size <- cohens_d(data1, data2, paired = TRUE)$Cohens_d
+      # }
+      # else{
+      #   test <- wilcox.test(data1, data2, alternative = alter, paired = TRUE, conf.level = 1 - alpha)
+      #   ES_ind <- "Correlation (r)"
+      #   z <- wilcoxonZ(data1, data2, paired = TRUE, digits = 4)
+      #   eff_size <- z/sqrt(2*sum(complete.cases(data1, data2)))
+      # }
+      output_str <- paste0(sprintf("%-40s", sprintf("Alternative: %s %s than %s", PROFILES[profile1], result$alternative, PROFILES[profile2])),
+                           sprintf("%-19s", sprintf("p value: %f", result$test$p.value)),
+                           sprintf("ES: %f (%s)", result$`effect size`, result$`ES index`))
+      auto_output(output_str, output_path, write = write, if_append = TRUE)
     }
 }
 
+
+## Test the significance of difference between different (unpaired) groups of data
+test_unpaired_difference <- function(input,
+                                     race_type = NULL,
+                                     by = c("result fields", "profiles"), 
+                                     between = c("clusters", "race types"), 
+                                     is_normal_ref, 
+                                     alpha = 0.05,
+                                     write = FALSE){
+  by <- match.arg(by, c("result fields", "profiles"))
+  between <- match.arg(between, c("clusters", "race types"))
+  output_path <- "D:/PKU/LuLab/Master'sThesis/Data/StatisticalReports/test_unpaired_difference.txt"
+  if (by == "result fields" && between == "clusters" && !is.null(race_type)){
+    race_type <- match.arg(race_type, c("Grand Tour", "Other Multi"))
+    output_str <- sprintf("========== Unpaired Test of difference between clusters for %s ==========", race_type)
+    auto_output(output_str, output_path, write = write, if_append = TRUE)
+    split_df <- split.data.frame(input, input$cluster)
+    for (field1 in c("Avg", "Best"))
+      for (field2 in c("Rank", "Avg Speed Rel to Median")){
+        field <- paste(race_type, paste(field1, field2), sep = ': ')
+        output_str <- sprintf("====== Test for %s ======", field)
+        auto_output(output_str, output_path, write = write, if_append = TRUE)
+        for (i in 1:(length(names(split_df))-1))
+          for (j in (i+1):length(names(split_df))){
+            cluster1 <- names(split_df)[i]
+            cluster2 <- names(split_df)[j]
+            is_norm1 <- (is_normal_ref[cluster1, field] >= alpha)
+            is_norm2 <- (is_normal_ref[cluster2, field] >= alpha)
+            data1 <- split_df[[cluster1]][[field]]
+            data2 <- split_df[[cluster2]][[field]]
+            result <- test_difference(data1, data2, is_norm1, is_norm2, paired = FALSE, alpha)
+            output_str <- paste0(sprintf("%-40s", sprintf("Alternative: Cluster %s %s than %s", cluster1, result$alternative, cluster2)),
+                                 sprintf("%-19s", sprintf("p value: %f", result$test$p.value)),
+                                 sprintf("ES: %f (%s)", result$`effect size`, result$`ES index`))
+            auto_output(output_str, output_path, write = write, if_append = TRUE)
+          }
+      }
+  }
+  else if (by == "profiles" && between == "race types"){
+    # The input order: grand_sc, grand_gc, other_sc, other_gc
+    for (field1 in c("Avg", "Best"))
+      for (field2 in c("Rank", "Avg Speed Rel to Median")){
+        output_str <- sprintf("\n========== Unpaired Test of difference in %s between Grand Tour and Other Multi ==========", paste(field1, field2))
+        auto_output(output_str, output_path, write = write, if_append = TRUE)
+        for (cluster in 1:3){
+          output_str <- sprintf("====== Test for cluster %d ==========", cluster)
+          auto_output(output_str, output_path, write = write, if_append = TRUE)
+          for (profile in PROFILES){
+            field <- paste(profile, paste(field1, field2), sep = ': ')
+            data1 <- split.data.frame(input[[1]], input[[1]]$cluster)[[cluster]][[field]]
+            data2 <- split.data.frame(input[[3]], input[[3]]$cluster)[[cluster]][[field]]
+            is_norm1 <- (is_normal_ref$grand_sc[cluster, field] >= alpha)
+            is_norm2 <- (is_normal_ref$other_multi_sc[cluster, field] >= alpha)
+            result <- test_difference(data1, data2, is_norm1, is_norm2, paired = FALSE, alpha)
+            output_str <- paste0(sprintf("%-50s", sprintf("Alternative: Grand %s than Other in %s", result$alternative, profile)),
+                                 sprintf("%-19s", sprintf("p value: %f", result$test$p.value)),
+                                 sprintf("ES: %f (%s)", result$`effect size`, result$`ES index`))
+            auto_output(output_str, output_path, write = write, if_append = TRUE)
+          }
+          field_grand <- paste("Grand Tour", paste(field1, field2), sep = ': ')
+          field_other <- paste("Other Multi", paste(field1, field2), sep = ': ')
+          data1 <- split.data.frame(input[[2]], input[[2]]$cluster)[[cluster]][[field_grand]]
+          data2 <- split.data.frame(input[[4]], input[[4]]$cluster)[[cluster]][[field_other]]
+          is_norm1 <- (is_normal_ref$grand_gc[cluster, field_grand] >= alpha)
+          is_norm2 <- (is_normal_ref$other_multi_gc[cluster, field_other] >= alpha)
+          result <- test_difference(data1, data2, is_norm1, is_norm2, paired = FALSE, alpha)
+          output_str <- paste0(sprintf("%-50s", sprintf("Alternative: Grand %s than Other in GC", result$alternative)),
+                               sprintf("%-19s", sprintf("p value: %f", result$test$p.value)),
+                               sprintf("ES: %f (%s)", result$`effect size`, result$`ES index`))
+          auto_output(output_str, output_path, write = write, if_append = TRUE)
+        }
+      }
+  }
+}
+
+  
 if (FALSE){
   # ref_matchrow <- match(grand_gc_fltrd$ID, grand_sc_normalize_kmeans$data$ranks$ID, 
   #                       nomatch = FALSE)
@@ -308,83 +421,99 @@ if (FALSE){
 }
 
 
-## For the test of difference
+## For the paired test of difference
 if (FALSE){
-  whether_write <- TRUE
   ## Performance in Grand Tours
-  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = WRITE)
   
-  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_fltrd, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
   
   ## Performance in other multi-stage races
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c("Plain"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Plain"), field = "Avg Rank", write = WRITE)
   
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c("Medium"), field = "Avg Avg Speed Rel to Median", write = WRITE)
   
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Rank", write = WRITE)
   
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(other_multi_sc_fltrd_matched, cluster_num = 3, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
   
   ## Performance in top 10% grand gc cyclists
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
   
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_top10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Best Avg Speed Rel to Median", write = WRITE)
   
   ## Performance in mid 10% grand gc cyclists
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
   
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "High"), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Plain", "High"), field = "Best Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Medium", "High"), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 1, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 2, is_normal = c("Medium"), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_mid10percent_gc, cluster_num = 3, is_normal = c("Medium", "High"), field = "Best Avg Speed Rel to Median", write = WRITE)
   
   ## Performance in bottom 10% grand gc cyclists
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c("Plain", "Medium", "High"), field = "Avg Avg Speed Rel to Median", write = WRITE)
   
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Best Rank", write = whether_write)
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c("High"), field = "Best Rank", write = WRITE)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Rank", write = WRITE)
   
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
-  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = whether_write)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 1, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+  test_paired_difference(grand_sc_bottom10percent_gc, cluster_num = 2, is_normal = c(), field = "Best Avg Speed Rel to Median", write = WRITE)
+}
+
+
+## For the unpaired test of difference
+if (FALSE){
+  test_unpaired_difference(grand_gc_fltrd, race_type = "Grand Tour", 
+                           by = "result fields", between = "clusters",
+                           is_normal_ref = normality_sw_pvals$grand_gc, write = WRITE)
+  
+  test_unpaired_difference(other_multi_gc_fltrd_matched, race_type = "Other Multi", 
+                           by = "result fields", between = "clusters",
+                           is_normal_ref = normality_sw_pvals$other_multi_gc, write = WRITE)
+  
+  test_unpaired_difference(list(grand_sc_fltrd, grand_gc_fltrd, 
+                                other_multi_sc_fltrd_matched, other_multi_gc_fltrd_matched), 
+                           by = "profiles", between = "race types",
+                           is_normal_ref = normality_sw_pvals, write = WRITE)
 }

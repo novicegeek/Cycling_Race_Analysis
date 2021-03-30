@@ -77,6 +77,15 @@ all_capitalize <- function(str, split = '_', sep = ' '){
 }
 
 
+## Automatically output strings to the GUI and file
+auto_output <- function(str, path, write, if_append, sep = "\n"){
+  print(str)
+  if (write){
+    write(x = str, file = path, append = if_append, sep = sep)
+  }
+}
+
+
 ## Calculate the cosine similarity between two vectors
 cal_cos_similarity <- function(vec1, vec2){
   if (class(vec1) != "numeric"){

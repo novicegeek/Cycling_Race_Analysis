@@ -1,9 +1,10 @@
 source('basics.R')
+require(factoextra)
 require(reshape2)
 require(Rmisc)
 require(stringr)
 Sys.setlocale("LC_CTYPE", "US")
-SAVE_ROOT = "F:/Documents/Li/Master'sThesis/Data/Plots"
+SAVE_ROOT = "D:/PKU/LuLab/Master'sThesis/plots"
 
 
 get_melt_info <- function(input,
@@ -111,7 +112,7 @@ auto_plot <- function(data,
     p <- p + geom_errorbar(aes(ymin = value, ymax = value + sd),
                            width = 0.4 * bar_width, position = position_dodge(bar_width))
   # Set y-axis title
-  ylabel_norm <- if (normalized) "标准化" else ""
+  ylabel_norm <- if (normalized) "归一化" else ""
   ylabel_pref <- switch(criterion, "avg" = "平均", "best" = "最优")
   ylabel_suff <- switch(value_type, "ranks" = "排名", "speed2median" = "完赛均速与中位数速度之比")
   # Set y-axis attributes: lower limit, breaks
@@ -197,16 +198,17 @@ auto_plot <- function(data,
             element_line("black", 
                          arrow = arrow(angle = arrow_angle, length = unit(10, "bigpts"), 
                                        ends = "last", type = "closed")),
-          axis.text.x = element_text(size = 17, color = "black"),
-          axis.text.y = element_text(size = 17, color = "black"),
-          axis.title.x = element_text(face = "bold", size = 19),
-          axis.title.y = element_text(face = "bold", size = 19),
+          axis.text.x = element_text(size = 21, color = "black"),
+          axis.text.y = element_text(size = 21, color = "black"),
+          axis.title.x = element_text(face = "bold", size = 23),
+          axis.title.y = element_text(face = "bold", size = 23),
           legend.background = element_rect(colour = "black"),
           # legend.box.spacing = unit(3, "bigpts"),
-          legend.margin = margin(2, -13, 7, 7),
-          # legend.key = element_rect(fill = "white", colour = "black", size = 0.2/72*25.4),
+          legend.margin = margin(0, -17, 5, 5),
+          legend.key = element_rect(colour = NA, fill = NA),
+          legend.key.size = unit(0.8, "cm"),
           legend.position = c(0.85, 0.90),
-          legend.text = element_text(size = 16),
+          legend.text = element_text(size = 21),
           legend.title = element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
@@ -234,6 +236,43 @@ auto_plot <- function(data,
   return(p)
 }
 
+
+pca_plot <- function(data){
+  fields <- c("Plain: Avg Rank", "Medium: Avg Rank", "High: Avg Rank")
+  raw_data <- scale(data[, fields], center = TRUE, scale = FALSE)
+  cluster <- as.factor(data$cluster)
+  pca <- princomp(raw_data)
+  plot_data <- as.data.frame(pca$scores[, 1:2])
+  sd_share <- pca$sdev
+  var_percent <- round(sd_share[1:2]**2 / sum(sd_share**2) * 100, digits = 1)
+  p <- ggplot(data = plot_data, mapping = aes(x = Comp.1, y = Comp.2)) +
+    geom_point(aes(colour = cluster, shape = cluster), size = 10) +
+    xlab(paste("主成分1", paste0("(", var_percent[1], "%)"))) +
+    ylab(paste("主成分2", paste0("(", var_percent[2], "%)"))) +
+    labs(colour = "类别", shape = "类别") +
+    scale_color_manual(values = c("black", "blue", "green")[1:length(levels(cluster))]) +
+    # scale_shape_manual(values = c(3, 17, 15)[1:length(levels(cluster))]) +
+    theme(axis.text.x = element_text(size = 45, color = "black"),
+          axis.text.y = element_text(size = 45, color = "black"),
+          axis.title.x = element_text(face = "bold", size = 52),
+          axis.title.y = element_text(face = "bold", size = 52),
+          legend.box.spacing = unit(30, "bigpts"),
+          legend.direction = "horizontal",
+          legend.key = element_rect(colour = NA, fill = NA),
+          legend.position = "bottom",
+          legend.spacing.x = unit(60, "bigpts"),
+          legend.text = element_text(size = 45),
+          legend.title = element_text(face = "bold", size = 45),
+          panel.background = element_rect(fill = "transparent"),
+          panel.border = element_blank(),
+          panel.grid.major = element_line(color = "gray", linetype = "dashed", size = 1.5),
+          panel.grid.minor = element_line(color = "gray", linetype = "dashed", size = 1.5),
+          plot.background = element_rect(fill = "transparent"))
+  show(p)
+}
+
+
+## 绘制条形图
 if (FALSE){
   LOW_RES = 0.5
   ### 大环赛的图片
@@ -244,7 +283,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_avg_ranks_melt$data, value_type = "ranks",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化排名
+  ## 平均单赛段归一化排名
   # grand_sc_norm_avg_ranks_melt <-
   #   get_melt_info(grand_sc_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
   #                 ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -266,7 +305,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_avg_speed2median_melt$data, value_type = "speed2median",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化均速
+  ## 平均单赛段归一化均速
   grand_sc_norm_avg_speed2median_melt <-
     get_melt_info(grand_sc_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
                   ref = grand_sc_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -372,7 +411,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_top10percent_avg_ranks_melt$data, value_type = "ranks",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_top10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化排名
+  ## 平均单赛段归一化排名
   grand_sc_top10percent_norm_avg_ranks_melt <-
     get_melt_info(grand_sc_top10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
                   ref = grand_sc_top10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -392,7 +431,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_top10percent_avg_speed2median_melt$data, value_type = "speed2median",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_top10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化均速
+  ## 平均单赛段归一化均速
   grand_sc_top10percent_norm_avg_speed2median_melt <-
     get_melt_info(grand_sc_top10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
                   ref = grand_sc_top10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -413,7 +452,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_mid10percent_avg_ranks_melt$data, value_type = "ranks",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_mid10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化排名
+  ## 平均单赛段归一化排名
   grand_sc_mid10percent_norm_avg_ranks_melt <-
     get_melt_info(grand_sc_mid10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
                   ref = grand_sc_mid10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -433,7 +472,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_mid10percent_avg_speed2median_melt$data, value_type = "speed2median",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_mid10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化均速
+  ## 平均单赛段归一化均速
   grand_sc_mid10percent_norm_avg_speed2median_melt <-
     get_melt_info(grand_sc_mid10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
                   ref = grand_sc_mid10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -454,7 +493,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_bottom10percent_avg_ranks_melt$data, value_type = "ranks",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_bottom10percent_kmeans_avg_ranks", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化排名
+  ## 平均单赛段归一化排名
   grand_sc_bottom10percent_norm_avg_ranks_melt <-
     get_melt_info(grand_sc_bottom10percent_normalize_kmeans$data$ranks, criterion = "avg", var = "ranks",
                   ref = grand_sc_bottom10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -474,7 +513,7 @@ if (FALSE){
   p <- auto_plot(grand_sc_bottom10percent_avg_speed2median_melt$data, value_type = "speed2median",
                  criterion = "avg", type = "bar",
                  file_name = "grand_sc_bottom10percent_kmeans_avg_speed2median", file_type = "png", low_res = LOW_RES)
-  ## 平均单赛段标准化均速
+  ## 平均单赛段归一化均速
   grand_sc_bottom10percent_norm_avg_speed2median_melt <-
     get_melt_info(grand_sc_bottom10percent_normalize_kmeans$data$speed2median, criterion = "avg", var = "speed2median",
                   ref = grand_sc_bottom10percent_normalize_kmeans$`k-means model`$ranks$cluster)
@@ -489,3 +528,8 @@ if (FALSE){
                  file_name = "grand_sc_bottom10percent_kmeans_best_speed2median", file_type = "png", low_res = LOW_RES)
 }
 
+
+## 绘制PCA图
+if (FALSE){
+  pca_plot(grand_sc_normalize_kmeans$data$ranks)
+}

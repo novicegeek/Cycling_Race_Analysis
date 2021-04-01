@@ -252,17 +252,17 @@ pca_plot <- function(data){
     labs(colour = "类别", shape = "类别") +
     scale_color_manual(values = c("black", "blue", "green")[1:length(levels(cluster))]) +
     # scale_shape_manual(values = c(3, 17, 15)[1:length(levels(cluster))]) +
-    theme(axis.text.x = element_text(size = 45, color = "black"),
-          axis.text.y = element_text(size = 45, color = "black"),
-          axis.title.x = element_text(face = "bold", size = 52),
-          axis.title.y = element_text(face = "bold", size = 52),
-          legend.box.spacing = unit(30, "bigpts"),
+    theme(axis.text.x = element_text(size = 50, color = "black"),
+          axis.text.y = element_text(size = 50, color = "black"),
+          axis.title.x = element_text(face = "bold", size = 60, vjust = -0.2),
+          axis.title.y = element_text(face = "bold", size = 60),
+          legend.box.spacing = unit(40, "bigpts"),
           legend.direction = "horizontal",
           legend.key = element_rect(colour = NA, fill = NA),
           legend.position = "bottom",
           legend.spacing.x = unit(60, "bigpts"),
-          legend.text = element_text(size = 45),
-          legend.title = element_text(face = "bold", size = 45),
+          legend.text = element_text(size = 50),
+          legend.title = element_text(face = "bold", size = 50),
           panel.background = element_rect(fill = "transparent"),
           panel.border = element_blank(),
           panel.grid.major = element_line(color = "gray", linetype = "dashed", size = 1.5),
@@ -532,4 +532,7 @@ if (FALSE){
 ## 绘制PCA图
 if (FALSE){
   pca_plot(grand_sc_normalize_kmeans$data$ranks)
+  pca_plot(grand_sc_top10percent_normalize_kmeans$data$ranks)
+  pca_plot(grand_sc_mid10percent_normalize_kmeans$data$ranks)
+  pca_plot(grand_sc_bottom10percent_normalize_kmeans$data$ranks)
 }
